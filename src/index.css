@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-ink text-zinc-100 font-sans antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Visible, consistent focus ring for keyboard users across the whole site. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-violet-400 ring-offset-2 ring-offset-ink;
+    border-radius: 6px;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply tracking-tighter;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background: rgba(124, 92, 255, 0.35);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-6 lg:px-8;
+  }
+
+  /* Glassmorphic surface used by every card on the site. */
+  .glass {
+    @apply rounded-2xl border border-white/[0.08] bg-white/[0.03] shadow-card backdrop-blur-xl;
+  }
+
+  .glass-hover {
+    @apply transition duration-300 hover:-translate-y-1 hover:border-white/[0.14] hover:bg-white/[0.05] hover:shadow-lift;
+  }
+
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold tracking-tight transition duration-200;
+  }
+
+  .btn-primary {
+    @apply btn text-white shadow-[0_10px_40px_-12px_rgba(124,92,255,0.9)];
+    /* Stops stay dark enough that white label text holds 4.5:1 at every
+       point of the animation. */
+    background-image: linear-gradient(100deg, #6f4ffb, #4f46e5, #5b46f0, #6f4ffb);
+    background-size: 300% 100%;
+    animation: gradient-pan 6s ease infinite;
+  }
+
+  .btn-primary:hover {
+    @apply -translate-y-0.5 shadow-[0_16px_50px_-12px_rgba(124,92,255,1)];
+  }
+
+  .btn-secondary {
+    @apply btn border border-white/15 bg-white/[0.04] text-zinc-100 hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.08];
+  }
+
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium tracking-tight text-zinc-300;
+  }
+
+  .lead {
+    @apply text-base leading-relaxed text-zinc-400 sm:text-lg;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-violet-400 via-violet-500 to-indigo-500 bg-clip-text text-transparent;
+  }
+
+  .hairline {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent;
+  }
+}
+
+/* Radial glows behind sections — purely decorative, kept out of the a11y tree. */
+.glow {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 9999px;
+  filter: blur(90px);
+  opacity: 0.5;
+}
+
+.grid-lines {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+}
+
+.marquee-mask {
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
