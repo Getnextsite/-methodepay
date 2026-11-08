@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom'
 import { plans } from '../data/site.js'
+import { signUpUrl } from '../lib/appUrl.js'
 import { Check, Star } from './Icons.jsx'
 import Reveal from './Reveal.jsx'
 
@@ -80,12 +80,12 @@ export function PlanCard({ plan, billing, compact = false, delay = 0 }) {
             : `or $${plan.yearly}/year`}
         </p>
 
-        <Link
-          to="/contact#buy"
+        <a
+          href={signUpUrl}
           className={`mt-6 w-full ${plan.popular ? 'btn-primary' : 'btn-secondary'}`}
         >
           {plan.cta}
-        </Link>
+        </a>
 
         <ul className="mt-6 space-y-2.5 text-sm">
           {items.map((h) => (

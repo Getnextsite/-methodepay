@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import Logo from './Logo.jsx'
+import { signInUrl, signUpUrl } from '../lib/appUrl.js'
 
 const links = [
   { to: '/', label: 'Home' },
@@ -63,13 +64,14 @@ export default function Nav() {
           ))}
         </ul>
 
+        {/* The app is a separate deployment, so these are real URLs. */}
         <div className="hidden items-center gap-2.5 md:flex">
-          <Link to="/#demo" className="btn-secondary !px-4 !py-2.5">
-            See live demo
-          </Link>
-          <Link to="/pricing" className="btn-primary !px-4 !py-2.5">
-            Get MethodePay
-          </Link>
+          <a href={signInUrl} className="btn-secondary !px-4 !py-2.5">
+            Sign in
+          </a>
+          <a href={signUpUrl} className="btn-primary !px-4 !py-2.5">
+            Start free
+          </a>
         </div>
 
         <button
@@ -110,12 +112,12 @@ export default function Nav() {
               </li>
             ))}
             <li className="mt-2 flex flex-col gap-2 px-1 pb-3">
-              <Link to="/#demo" className="btn-secondary w-full">
-                See live demo
-              </Link>
-              <Link to="/pricing" className="btn-primary w-full">
-                Get MethodePay
-              </Link>
+              <a href={signInUrl} className="btn-secondary w-full">
+                Sign in
+              </a>
+              <a href={signUpUrl} className="btn-primary w-full">
+                Start free
+              </a>
             </li>
           </ul>
         </div>

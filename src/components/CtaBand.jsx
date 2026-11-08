@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import Glow from './Glow.jsx'
 import Reveal from './Reveal.jsx'
 import { ArrowRight } from './Icons.jsx'
+import { signUpUrl } from '../lib/appUrl.js'
 
 export default function CtaBand({
   title = 'Stop losing sales to a payment page.',
@@ -17,11 +18,11 @@ export default function CtaBand({
           </h2>
           <p className="lead mx-auto mt-4 max-w-xl">{sub}</p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <Link to="/pricing" className="btn-primary">
-              Get MethodePay <ArrowRight width={16} height={16} />
-            </Link>
-            <Link to="/#demo" className="btn-secondary">
-              See live demo
+            <a href={signUpUrl} className="btn-primary">
+              Start free <ArrowRight width={16} height={16} />
+            </a>
+            <Link to="/pricing" className="btn-secondary">
+              Compare plans
             </Link>
           </div>
         </div>
