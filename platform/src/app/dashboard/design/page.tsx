@@ -63,6 +63,7 @@ export default async function DesignPage() {
         availableDesigns={ALL_DESIGNS.filter((d) => canUseDesign(ent, d))}
         allDesigns={ALL_DESIGNS}
         designCopy={DESIGN_COPY}
+        previewUrl={previewUrl}
         values={{
           design: profile.design,
           colorPrimary: profile.colorPrimary,

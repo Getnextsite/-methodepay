@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { formatMoney } from '@/lib/money';
 import type { AvailableMethod } from '@/lib/gateway/types';
 
 export type CheckoutFormProps = {
@@ -13,6 +14,21 @@ export type CheckoutFormProps = {
   requiresShipping: boolean;
   guarantee: { title: string; text: string; days: number } | null;
   renewalOfRef?: string;
+  /**
+   * Ask how they want to pay before asking who they are. For a buyer who has
+   * already decided, the rail is the only question that remains.
+   */
+  methodsFirst?: boolean;
+  /** Render the rails as a grid of tiles rather than a stacked list. */
+  tiles?: boolean;
+  /**
+   * Drop the subtotal line when the layout already prints the price elsewhere.
+   * The discount field and the payable total always stay: a buyer holding a
+   * code needs somewhere to type it, whatever the layout.
+   */
+  compactTotals?: boolean;
+  /** Bigger pay button, for layouts where it is the only thing on screen. */
+  largeCta?: boolean;
   /** Rendered above the submit button; the merchant trust block. */
   children?: React.ReactNode;
 };
@@ -50,6 +66,10 @@ export function CheckoutForm(props: CheckoutFormProps) {
     customFields,
     requiresShipping,
     renewalOfRef,
+    methodsFirst = false,
+    tiles = false,
+    compactTotals = false,
+    largeCta = false,
     children,
   } = props;
 
@@ -150,20 +170,20 @@ export function CheckoutForm(props: CheckoutFormProps) {
 
   if (methods.length === 0) {
     return (
-      <div style={panel}>
+      <div className="mp-panel">
         <p style={{ margin: 0, fontWeight: 600 }}>No payment methods available</p>
-        <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--mp-text-muted)' }}>
+        <p className="mp-note" style={{ marginTop: 6 }}>
           This store has not finished setting up a way to pay. Please contact the seller.
         </p>
       </div>
     );
   }
 
-  return (
-    <form onSubmit={onSubmit} noValidate>
-      <fieldset style={fieldsetReset}>
-        <legend style={legend}>Your details</legend>
-        <div style={grid2}>
+  const details = (
+    <fieldset>
+      <legend className="mp-legend">Your details</legend>
+      <div className="mp-fields">
+        <div className="mp-fields mp-fields--2">
           <Input name="buyerName" label="Full name" required autoComplete="name" />
           <Input name="buyerEmail" label="Email" type="email" required autoComplete="email" />
         </div>
@@ -174,7 +194,13 @@ export function CheckoutForm(props: CheckoutFormProps) {
             if (field.type === 'textarea') {
               return (
                 <Field key={field.key} label={field.label} name={field.name} required={required}>
-                  <textarea id={field.name} name={field.name} rows={3} required={required} style={input} />
+                  <textarea
+                    id={field.name}
+                    name={field.name}
+                    rows={3}
+                    required={required}
+                    className="mp-input"
+                  />
                 </Field>
               );
             }
@@ -189,7 +215,7 @@ export function CheckoutForm(props: CheckoutFormProps) {
                     autoComplete="country"
                     placeholder="US"
                     maxLength={2}
-                    style={{ ...input, textTransform: 'uppercase' }}
+                    className="mp-input mp-input--upper"
                   />
                   <datalist id="mp-countries">
                     {COUNTRIES.map((c) => (
@@ -217,7 +243,7 @@ export function CheckoutForm(props: CheckoutFormProps) {
           if (field.type === 'select') {
             return (
               <Field key={name} label={field.label} name={name} required={field.required}>
-                <select id={name} name={name} required={field.required} style={input}>
+                <select id={name} name={name} required={field.required} className="mp-input">
                   <option value="">Select…</option>
                   {field.options.map((option) => (
                     <option key={option} value={option}>
@@ -238,227 +264,174 @@ export function CheckoutForm(props: CheckoutFormProps) {
             />
           );
         })}
-      </fieldset>
+      </div>
+    </fieldset>
+  );
 
-      <fieldset style={{ ...fieldsetReset, marginTop: 22 }}>
-        <legend style={legend}>How would you like to pay?</legend>
-        <div style={{ display: 'grid', gap: 8 }}>
-          {methods.map((option) => {
-            const active = option.key === method;
-            return (
-              <label
-                key={option.key}
-                style={{
-                  display: 'flex',
-                  gap: 11,
-                  alignItems: 'flex-start',
-                  padding: 13,
-                  cursor: 'pointer',
-                  borderRadius: 'var(--mp-radius-sm)',
-                  border: `1px solid ${active ? 'var(--mp-primary)' : 'var(--mp-border)'}`,
-                  background: active ? 'color-mix(in srgb, var(--mp-primary) 8%, transparent)' : 'transparent',
-                }}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value={option.key}
-                  checked={active}
-                  onChange={() => setMethod(option.key)}
-                  style={{ marginTop: 3, accentColor: 'var(--mp-primary)' }}
-                />
-                <span style={{ minWidth: 0, flex: 1 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    {option.iconUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- merchant-hosted icon
-                      <img src={option.iconUrl} alt="" style={{ height: 16, width: 'auto' }} />
-                    ) : (
-                      <span
-                        aria-hidden
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: 999,
-                          background: option.tone,
-                          display: 'inline-block',
-                        }}
-                      />
-                    )}
-                    <span style={{ fontWeight: 600, fontSize: 14 }}>{option.label}</span>
-                    {option.recommended ? (
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          letterSpacing: '.04em',
-                          textTransform: 'uppercase',
-                          background: 'var(--mp-primary)',
-                          color: 'var(--mp-primary-contrast)',
-                          borderRadius: 999,
-                          padding: '2px 7px',
-                        }}
-                      >
-                        Recommended
-                      </span>
-                    ) : null}
-                  </span>
-                  {option.description ? (
-                    <span
-                      style={{
-                        display: 'block',
-                        marginTop: 3,
-                        fontSize: 12.5,
-                        lineHeight: 1.5,
-                        color: 'var(--mp-text-muted)',
-                      }}
-                    >
-                      {option.description}
-                    </span>
-                  ) : null}
+  const payment = (
+    <fieldset>
+      <legend className="mp-legend">How would you like to pay?</legend>
+      <div className={`mp-methods${tiles ? ' mp-methods--tiles' : ''}`}>
+        {methods.map((option) => {
+          const active = option.key === method;
+          return (
+            <label
+              key={option.key}
+              className={`mp-method${active ? ' mp-method--on' : ''}`}
+              style={tiles ? { position: 'relative' } : undefined}
+            >
+              <input
+                type="radio"
+                name="paymentMethod"
+                value={option.key}
+                checked={active}
+                onChange={() => setMethod(option.key)}
+              />
+              <span className="mp-method-body">
+                <span className="mp-method-head">
+                  {option.iconUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- merchant-hosted icon
+                    <img src={option.iconUrl} alt="" style={{ height: 16, width: 'auto' }} />
+                  ) : (
+                    <span aria-hidden className="mp-dot" style={{ background: option.tone }} />
+                  )}
+                  <span className="mp-method-name">{option.label}</span>
+                  {option.recommended ? <span className="mp-tag">Recommended</span> : null}
                 </span>
-              </label>
-            );
-          })}
-        </div>
-
-        {selected?.kycNotice ? (
-          <p
-            style={{
-              margin: '12px 0 0',
-              padding: 12,
-              borderRadius: 'var(--mp-radius-sm)',
-              border: '1px solid var(--mp-border)',
-              fontSize: 12.5,
-              lineHeight: 1.6,
-              color: 'var(--mp-text-muted)',
-            }}
-          >
-            {selected.kycNotice}
-          </p>
-        ) : null}
-
-        {selected?.requiresGiftCard ? (
-          <div style={{ marginTop: 12, display: 'grid', gap: 12 }}>
-            <Field label="Gift card code" name="giftCardCode" required hint="16 characters, as printed on the card.">
-              <input
-                id="giftCardCode"
-                name="giftCardCode"
-                required
-                minLength={14}
-                maxLength={25}
-                autoComplete="off"
-                spellCheck={false}
-                style={{ ...input, fontFamily: 'ui-monospace, monospace', letterSpacing: '.06em' }}
-              />
-            </Field>
-            <Field label="Which Amazon region is it for?" name="giftCardCountry">
-              <input
-                id="giftCardCountry"
-                name="giftCardCountry"
-                list="mp-countries"
-                maxLength={2}
-                placeholder="US"
-                style={{ ...input, textTransform: 'uppercase' }}
-              />
-            </Field>
-            <p style={{ margin: 0, fontSize: 11.5, lineHeight: 1.6, color: 'var(--mp-text-faint)' }}>
-              Your code is encrypted and reviewed by the seller by hand. Your order stays pending
-              until they confirm it — no balance is checked or redeemed automatically.
-            </p>
-          </div>
-        ) : null}
-      </fieldset>
-
-      <div style={{ ...panel, marginTop: 22 }}>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input
-            value={coupon}
-            onChange={(e) => setCoupon(e.target.value.toUpperCase())}
-            placeholder="Discount code"
-            aria-label="Discount code"
-            style={{ ...input, textTransform: 'uppercase' }}
-          />
-          <button
-            type="button"
-            onClick={applyCoupon}
-            disabled={checkingCoupon || !coupon.trim()}
-            style={{ ...secondaryButton, whiteSpace: 'nowrap' }}
-          >
-            {checkingCoupon ? 'Checking…' : 'Apply'}
-          </button>
-        </div>
-        {totals.couponLabel ? (
-          <p role="status" style={{ margin: '9px 0 0', fontSize: 12.5, color: 'var(--mp-primary)' }}>
-            {totals.couponLabel} applied.
-          </p>
-        ) : null}
-        {totals.couponError ? (
-          <p role="alert" style={{ margin: '9px 0 0', fontSize: 12.5, color: '#ff8585' }}>
-            {totals.couponError}
-          </p>
-        ) : null}
-
-        <dl style={{ margin: '14px 0 0', display: 'grid', gap: 7, fontSize: 13.5 }}>
-          <Line label="Subtotal" value={money(priceCents, currency)} />
-          {totals.discountCents > 0 ? (
-            <Line label="Discount" value={`− ${money(totals.discountCents, currency)}`} accent />
-          ) : null}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              borderTop: '1px solid var(--mp-border)',
-              paddingTop: 9,
-              fontSize: 15,
-              fontWeight: 700,
-            }}
-          >
-            <dt>Total</dt>
-            <dd style={{ margin: 0, color: 'var(--mp-primary)' }}>{money(total, currency)}</dd>
-          </div>
-        </dl>
+                {option.description ? (
+                  <span className="mp-method-desc">{option.description}</span>
+                ) : null}
+              </span>
+            </label>
+          );
+        })}
       </div>
 
-      {children}
-
-      {error ? (
-        <p
-          role="alert"
-          style={{
-            margin: '18px 0 0',
-            padding: 12,
-            borderRadius: 'var(--mp-radius-sm)',
-            border: '1px solid #ff858540',
-            background: '#ff85851a',
-            color: '#ffb3b3',
-            fontSize: 13,
-          }}
-        >
-          {error}
+      {selected?.kycNotice ? (
+        <p className="mp-panel mp-note" style={{ marginTop: 12 }}>
+          {selected.kycNotice}
         </p>
       ) : null}
 
-      <button type="submit" disabled={submitting} style={primaryButton}>
-        {submitting ? 'Taking you to payment…' : `Pay ${money(total, currency)}`}
-      </button>
+      {selected?.requiresGiftCard ? (
+        <div className="mp-fields" style={{ marginTop: 14 }}>
+          <Field
+            label="Gift card code"
+            name="giftCardCode"
+            required
+            hint="16 characters, as printed on the card."
+          >
+            <input
+              id="giftCardCode"
+              name="giftCardCode"
+              required
+              minLength={14}
+              maxLength={25}
+              autoComplete="off"
+              spellCheck={false}
+              className="mp-input mp-input--mono"
+            />
+          </Field>
+          <Field label="Which Amazon region is it for?" name="giftCardCountry">
+            <input
+              id="giftCardCountry"
+              name="giftCardCountry"
+              list="mp-countries"
+              maxLength={2}
+              placeholder="US"
+              className="mp-input mp-input--upper"
+            />
+          </Field>
+          <p className="mp-fine">
+            Your code is encrypted and reviewed by the seller by hand. Your order stays pending until
+            they confirm it — no balance is checked or redeemed automatically.
+          </p>
+        </div>
+      ) : null}
+    </fieldset>
+  );
 
-      <p style={{ margin: '12px 0 0', fontSize: 11.5, textAlign: 'center', color: 'var(--mp-text-faint)' }}>
-        You will see exactly what to do next before anything is charged.
-      </p>
+  return (
+    <form className="mp-form" onSubmit={onSubmit} noValidate>
+      <div className="mp-stack" style={{ ['--mp-gap' as string]: '22px' }}>
+        {methodsFirst ? payment : details}
+        {methodsFirst ? details : payment}
+
+        <div className="mp-panel">
+            <div className="mp-coupon">
+              <input
+                value={coupon}
+                onChange={(e) => setCoupon(e.target.value.toUpperCase())}
+                placeholder="Discount code"
+                aria-label="Discount code"
+                className="mp-input mp-input--upper"
+              />
+              <button
+                type="button"
+                onClick={applyCoupon}
+                disabled={checkingCoupon || !coupon.trim()}
+                className="mp-btn-ghost"
+              >
+                {checkingCoupon ? 'Checking…' : 'Apply'}
+              </button>
+            </div>
+            {totals.couponLabel ? (
+              <p role="status" className="mp-ok" style={{ marginTop: 10 }}>
+                {totals.couponLabel} applied.
+              </p>
+            ) : null}
+            {totals.couponError ? (
+              <p role="alert" className="mp-alert" style={{ marginTop: 10 }}>
+                {totals.couponError}
+              </p>
+            ) : null}
+
+            <dl className="mp-totals" style={{ marginTop: 15 }}>
+              {compactTotals && totals.discountCents === 0 ? null : (
+                <div className="mp-totals-row">
+                  <dt>Subtotal</dt>
+                  <dd>{money(priceCents, currency)}</dd>
+                </div>
+              )}
+              {totals.discountCents > 0 ? (
+                <div className="mp-totals-row mp-totals-row--off">
+                  <dt>Discount</dt>
+                  <dd>− {money(totals.discountCents, currency)}</dd>
+                </div>
+              ) : null}
+              <div className="mp-totals-row mp-totals-row--sum">
+                <dt>Total</dt>
+                <dd>{money(total, currency)}</dd>
+              </div>
+            </dl>
+          </div>
+
+        {children}
+
+        {error ? (
+          <p role="alert" className="mp-alert">
+            {error}
+          </p>
+        ) : null}
+
+        <div>
+          <button
+            type="submit"
+            disabled={submitting}
+            className={`mp-btn${largeCta ? ' mp-btn--lg' : ''}`}
+          >
+            {submitting ? 'Taking you to payment…' : `Pay ${money(total, currency)}`}
+          </button>
+          <p className="mp-fine" style={{ marginTop: 12, textAlign: 'center' }}>
+            You will see exactly what to do next before anything is charged.
+          </p>
+        </div>
+      </div>
     </form>
   );
 }
 
 // ---------------------------------------------------------------- bits
-
-function Line({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-      <dt style={{ color: 'var(--mp-text-muted)' }}>{label}</dt>
-      <dd style={{ margin: 0, color: accent ? 'var(--mp-primary)' : 'inherit' }}>{value}</dd>
-    </div>
-  );
-}
 
 function Field({
   label,
@@ -474,14 +447,21 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ marginTop: 12 }}>
-      <label htmlFor={name} style={labelStyle}>
+    <div>
+      <label htmlFor={name} className="mp-label">
         {label}
-        {required ? <span aria-hidden style={{ color: 'var(--mp-primary)' }}> *</span> : null}
+        {required ? (
+          <span aria-hidden className="mp-req">
+            {' '}
+            *
+          </span>
+        ) : null}
       </label>
       {children}
       {hint ? (
-        <p style={{ margin: '5px 0 0', fontSize: 11.5, color: 'var(--mp-text-faint)' }}>{hint}</p>
+        <p className="mp-fine" style={{ marginTop: 5 }}>
+          {hint}
+        </p>
       ) : null}
     </div>
   );
@@ -503,7 +483,7 @@ function Input({
   if (type === 'textarea') {
     return (
       <Field label={label} name={name} required={required}>
-        <textarea id={name} name={name} rows={3} required={required} style={input} />
+        <textarea id={name} name={name} rows={3} required={required} className="mp-input" />
       </Field>
     );
   }
@@ -515,88 +495,16 @@ function Input({
         type={type}
         required={required}
         autoComplete={autoComplete}
-        style={input}
+        className="mp-input"
       />
     </Field>
   );
 }
 
+// One formatter for the whole page. Intl with an undefined locale resolves
+// differently on the server and in the browser, which both desynchronises the
+// rail from the totals and risks a hydration mismatch on the only number that
+// matters.
 function money(cents: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(cents / 100);
-  } catch {
-    return `${(cents / 100).toFixed(2)} ${currency}`;
-  }
+  return formatMoney(cents, currency);
 }
-
-const fieldsetReset: React.CSSProperties = { border: 0, margin: 0, padding: 0 };
-
-const legend: React.CSSProperties = {
-  padding: 0,
-  marginBottom: 4,
-  fontSize: 12,
-  fontWeight: 700,
-  letterSpacing: '.06em',
-  textTransform: 'uppercase',
-  color: 'var(--mp-text-faint)',
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  marginBottom: 5,
-  fontSize: 12.5,
-  fontWeight: 500,
-  color: 'var(--mp-text-muted)',
-};
-
-const input: React.CSSProperties = {
-  width: '100%',
-  boxSizing: 'border-box',
-  padding: '11px 13px',
-  fontSize: 14,
-  fontFamily: 'inherit',
-  color: 'var(--mp-text)',
-  background: 'color-mix(in srgb, var(--mp-bg-start) 55%, transparent)',
-  border: '1px solid var(--mp-border)',
-  borderRadius: 'var(--mp-radius-sm)',
-  outlineOffset: 2,
-};
-
-const panel: React.CSSProperties = {
-  padding: 16,
-  borderRadius: 'var(--mp-radius-sm)',
-  border: '1px solid var(--mp-border)',
-  background: 'color-mix(in srgb, var(--mp-bg-start) 40%, transparent)',
-};
-
-const primaryButton: React.CSSProperties = {
-  marginTop: 18,
-  width: '100%',
-  padding: '15px 18px',
-  fontSize: 15.5,
-  fontWeight: 700,
-  fontFamily: 'inherit',
-  color: 'var(--mp-primary-contrast)',
-  background: 'var(--mp-primary)',
-  border: 0,
-  borderRadius: 'var(--mp-radius-sm)',
-  cursor: 'pointer',
-};
-
-const secondaryButton: React.CSSProperties = {
-  padding: '11px 15px',
-  fontSize: 13.5,
-  fontWeight: 600,
-  fontFamily: 'inherit',
-  color: 'var(--mp-text)',
-  background: 'transparent',
-  border: '1px solid var(--mp-border-strong)',
-  borderRadius: 'var(--mp-radius-sm)',
-  cursor: 'pointer',
-};
-
-const grid2: React.CSSProperties = {
-  display: 'grid',
-  gap: 12,
-  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-};

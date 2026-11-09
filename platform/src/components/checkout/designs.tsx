@@ -1,16 +1,25 @@
-import type { CheckoutProfile, Product } from '@prisma/client';
+import type { CheckoutDesign, CheckoutProfile, Product } from '@prisma/client';
 import { formatMoney } from '@/lib/money';
 import { CheckoutForm, type CheckoutFormProps } from './form';
-import { Card, MerchantHeader, PolicyFooter, TrustBadges } from './shell';
+import {
+  Card,
+  CheckMark,
+  MerchantHeader,
+  PolicyFooter,
+  Stars,
+  TrustBadges,
+  type ShellWidth,
+} from './shell';
 
 /**
  * The six checkout designs.
  *
- * One form, six arrangements. They differ in what the buyer sees first — the
- * summary, the methods, the pitch or the proof — because the right answer
- * depends on where the traffic came from, and the merchant knows that and we
- * do not. Every variant reads the same theme variables, so a palette change
- * applies to all of them.
+ * They are not six skins on one page. Each one answers a different question
+ * about where the buyer came from — a link they asked for, an ad they had never
+ * seen before, a repeat purchase — and so each leads with something different:
+ * the receipt, the product, the rails, the pitch or the proof. What they share
+ * is the form and the theme variables, so a palette change still applies to all
+ * of them and there is only one place payment can go wrong.
  */
 
 export type DesignProps = {
@@ -41,128 +50,216 @@ export function CheckoutView(props: DesignProps) {
   }
 }
 
+/**
+ * How much room each layout gets.
+ *
+ * `full` means the design places its own containers, because it bleeds a band
+ * to the edge of the viewport and cannot sit inside a fixed column.
+ */
+export function shellWidthFor(design: CheckoutDesign): ShellWidth {
+  switch (design) {
+    case 'LITE':
+      return 'narrow';
+    case 'EXPRESS':
+    case 'HERO':
+      return 'full';
+    default:
+      return 'wide';
+  }
+}
+
 // ---------------------------------------------------------------- shared bits
 
-function Heading({ profile, product }: { profile: CheckoutProfile; product: Product }) {
+function price(product: Product): string {
+  return formatMoney(product.priceCents, product.currency);
+}
+
+/**
+ * Facts taken from the product row, never invented.
+ *
+ * A checkout that says "instant delivery" because the layout had a slot for it
+ * is how a merchant ends up with a chargeback, so every line here is read from
+ * a field the merchant actually filled in and omitted otherwise.
+ */
+function ProductFacts({ product, className = '' }: { product: Product; className?: string }) {
+  const rows: { k: string; v: string }[] = [];
+
+  rows.push({ k: 'Type', v: product.type === 'PHYSICAL' ? 'Physical item' : 'Digital' });
+
+  if (product.durationDays > 0) {
+    rows.push({ k: 'Access', v: `${product.durationDays} days, renewable` });
+  } else if (product.type === 'DIGITAL') {
+    rows.push({ k: 'Access', v: 'One-off, no expiry' });
+  }
+
+  if (product.requiresShipping) {
+    rows.push({ k: 'Delivery', v: 'Shipped to your address' });
+  } else if (product.deliveryFileUrl) {
+    rows.push({ k: 'Delivery', v: 'Download after payment' });
+  } else {
+    rows.push({ k: 'Delivery', v: 'Sent by email' });
+  }
+
+  if (product.manageStock) {
+    rows.push({ k: 'Availability', v: product.stock <= 5 ? `Only ${product.stock} left` : 'In stock' });
+  }
+
   return (
-    <div style={{ marginBottom: 18 }}>
-      <h1 style={{ margin: 0, fontSize: 24, lineHeight: 1.25, letterSpacing: '-0.02em' }}>
-        {profile.checkoutTitle || `Complete your order`}
-      </h1>
-      <p style={{ margin: '7px 0 0', fontSize: 14, color: 'var(--mp-text-muted)' }}>
-        {profile.checkoutSubtitle || product.name}
-      </p>
-    </div>
+    <dl className={`mp-meta ${className}`.trim()}>
+      {rows.map((row) => (
+        <div key={row.k} className="mp-meta-row">
+          <dt>{row.k}</dt>
+          <dd>{row.v}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
-function Summary({
-  product,
-  compact = false,
-}: {
-  product: Product;
-  compact?: boolean;
-}) {
-  return (
-    <div>
-      {product.imageUrl && !compact ? (
-        // eslint-disable-next-line @next/next/no-img-element -- merchant-hosted asset
-        <img
-          src={product.imageUrl}
-          alt={product.name}
-          style={{
-            width: '100%',
-            height: 'auto',
-            display: 'block',
-            borderRadius: 'var(--mp-radius-sm)',
-            marginBottom: 14,
-          }}
-        />
-      ) : null}
-
-      <p style={labelCaps}>You are buying</p>
-      <p style={{ margin: '6px 0 0', fontSize: 17, fontWeight: 600 }}>{product.name}</p>
-      <p style={{ margin: '4px 0 0', fontSize: 26, fontWeight: 700, color: 'var(--mp-primary)' }}>
-        {formatMoney(product.priceCents, product.currency)}
-      </p>
-
-      {product.durationDays > 0 ? (
-        <p style={{ margin: '8px 0 0', fontSize: 12.5, color: 'var(--mp-text-muted)' }}>
-          {product.durationDays} days of access, renewable.
-        </p>
-      ) : null}
-
-      {product.description ? (
-        <div
-          style={{
-            marginTop: 14,
-            paddingTop: 14,
-            borderTop: '1px solid var(--mp-border)',
-            fontSize: 13.5,
-            lineHeight: 1.65,
-            color: 'var(--mp-text-muted)',
-          }}
-          // Merchant-authored product copy. Stored as entered and rendered as
-          // HTML so basic formatting works; the merchant is the only author.
-          dangerouslySetInnerHTML={{ __html: product.description }}
-        />
-      ) : null}
-
-      {product.manageStock && product.stock <= 5 ? (
-        <p style={{ margin: '12px 0 0', fontSize: 12.5, fontWeight: 600, color: 'var(--mp-primary)' }}>
-          Only {product.stock} left.
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function Guarantee({ profile }: { profile: CheckoutProfile }) {
-  if (!profile.guaranteeText) return null;
+function Description({ product, large = false }: { product: Product; large?: boolean }) {
+  if (!product.description) return null;
   return (
     <div
-      style={{
-        marginTop: 18,
-        padding: 15,
-        borderRadius: 'var(--mp-radius-sm)',
-        border: '1px solid var(--mp-border)',
-      }}
-    >
-      <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600 }}>{profile.guaranteeTitle}</p>
-      <p style={{ margin: '6px 0 0', fontSize: 12.5, lineHeight: 1.6, color: 'var(--mp-text-muted)' }}>
-        {profile.guaranteeText}
-      </p>
+      className={`mp-prose${large ? ' mp-prose--lg' : ''}`}
+      // Merchant-authored product copy. Stored as entered and rendered as HTML
+      // so basic formatting works; the merchant is the only author.
+      dangerouslySetInnerHTML={{ __html: product.description }}
+    />
+  );
+}
+
+function ProductImage({
+  product,
+  frame = '',
+  fallback = false,
+}: {
+  product: Product;
+  /** Extra classes on the frame, e.g. `mp-media--wide`. */
+  frame?: string;
+  /**
+   * Draw a monogram when the merchant has not uploaded an image. Worth it on a
+   * product-led layout, where an empty column reads as a broken page; pointless
+   * on the others, which simply drop the image.
+   */
+  fallback?: boolean;
+}) {
+  if (!product.imageUrl && !fallback) return null;
+  const low = product.manageStock && product.stock > 0 && product.stock <= 5;
+
+  return (
+    <div className={`mp-media ${frame}`.trim()}>
+      {product.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- merchant-hosted asset
+        <img src={product.imageUrl} alt={product.name} />
+      ) : (
+        <span className="mp-monogram" aria-hidden>
+          {product.name.trim().charAt(0).toUpperCase()}
+        </span>
+      )}
+      {low ? <span className="mp-media-tag">Only {product.stock} left</span> : null}
     </div>
   );
 }
 
-function Testimonials({ profile }: { profile: CheckoutProfile }) {
-  const items = Array.isArray(profile.testimonials)
+/** The order, as a receipt. The thing a buyer checks before they commit. */
+function OrderSummary({
+  product,
+  showImage = true,
+  showDescription = true,
+}: {
+  product: Product;
+  showImage?: boolean;
+  showDescription?: boolean;
+}) {
+  return (
+    <div className="mp-stack" style={{ ['--mp-gap' as string]: '16px' }}>
+      {showImage ? <ProductImage product={product} /> : null}
+
+      <div>
+        <p className="mp-eyebrow">Your order</p>
+        <p className="mp-title mp-title--sm" style={{ marginTop: 8 }}>
+          {product.name}
+        </p>
+        <div className="mp-price-row" style={{ marginTop: 6 }}>
+          <p className="mp-price">{price(product)}</p>
+          {product.durationDays > 0 ? (
+            <span className="mp-fine">per {product.durationDays} days</span>
+          ) : null}
+        </div>
+      </div>
+
+      <ProductFacts product={product} />
+      {showDescription ? <Description product={product} /> : null}
+    </div>
+  );
+}
+
+function GuaranteeNote({
+  profile,
+  seal = true,
+}: {
+  profile: CheckoutProfile;
+  seal?: boolean;
+}) {
+  if (!profile.guaranteeText) return null;
+  return (
+    <div className="mp-panel mp-panel--primary" style={{ display: 'flex', gap: 14 }}>
+      {seal ? (
+        <span className="mp-seal" aria-hidden>
+          <b>{profile.guaranteeDays}</b>
+          <span>days</span>
+        </span>
+      ) : null}
+      <div>
+        <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600 }}>{profile.guaranteeTitle}</p>
+        <p className="mp-note" style={{ marginTop: 6 }}>
+          {profile.guaranteeText}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function readTestimonials(profile: CheckoutProfile) {
+  return Array.isArray(profile.testimonials)
     ? (profile.testimonials as unknown[]).filter(
         (t): t is { text: string; name?: string; role?: string } =>
-          typeof t === 'object' && t !== null && typeof (t as { text?: unknown }).text === 'string' &&
+          typeof t === 'object' &&
+          t !== null &&
+          typeof (t as { text?: unknown }).text === 'string' &&
           (t as { text: string }).text.trim() !== '',
       )
     : [];
+}
+
+function Quotes({
+  profile,
+  row = false,
+  limit = 3,
+}: {
+  profile: CheckoutProfile;
+  row?: boolean;
+  limit?: number;
+}) {
+  const items = readTestimonials(profile).slice(0, limit);
   if (items.length === 0) return null;
 
   return (
-    <ul style={{ listStyle: 'none', margin: '18px 0 0', padding: 0, display: 'grid', gap: 10 }}>
-      {items.slice(0, 3).map((item, index) => (
-        <li
-          key={index}
-          style={{
-            padding: 14,
-            borderRadius: 'var(--mp-radius-sm)',
-            border: '1px solid var(--mp-border)',
-          }}
-        >
-          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>&ldquo;{item.text}&rdquo;</p>
+    <ul className={`mp-quotes${row ? ' mp-quotes--row' : ''}`}>
+      {items.map((item, index) => (
+        <li key={index} className="mp-quote">
+          <Stars />
+          <p style={{ marginTop: 9 }}>&ldquo;{item.text}&rdquo;</p>
           {item.name ? (
-            <p style={{ margin: '7px 0 0', fontSize: 11.5, color: 'var(--mp-text-faint)' }}>
-              {item.name}
-              {item.role ? ` · ${item.role}` : ''}
-            </p>
+            <footer>
+              <span className="mp-avatar" aria-hidden>
+                {item.name.trim().charAt(0).toUpperCase()}
+              </span>
+              <span className="mp-fine">
+                {item.name}
+                {item.role ? ` · ${item.role}` : ''}
+              </span>
+            </footer>
           ) : null}
         </li>
       ))}
@@ -170,204 +267,333 @@ function Testimonials({ profile }: { profile: CheckoutProfile }) {
   );
 }
 
+/** What happens after the button, spelled out. Unknowns are what stall a sale. */
+function WhatHappensNext({ product }: { product: Product }) {
+  return (
+    <div>
+      <p className="mp-eyebrow" style={{ marginBottom: 14 }}>
+        What happens next
+      </p>
+      <ol className="mp-steps">
+        <li>
+          <span className="mp-note" style={{ color: 'var(--mp-text)' }}>
+            You pick how to pay and we show you exactly what to do.
+          </span>
+        </li>
+        <li>
+          <span className="mp-note" style={{ color: 'var(--mp-text)' }}>
+            Nothing is charged until you confirm it on the payment screen.
+          </span>
+        </li>
+        <li>
+          <span className="mp-note" style={{ color: 'var(--mp-text)' }}>
+            {product.requiresShipping
+              ? 'Once payment clears we confirm your order by email and ship it.'
+              : 'Once payment clears your order page unlocks and we email you a copy.'}
+          </span>
+        </li>
+      </ol>
+    </div>
+  );
+}
+
+function Heading({ profile, product }: { profile: CheckoutProfile; product: Product }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <h1 className="mp-title">{profile.checkoutTitle || 'Complete your order'}</h1>
+      <p className="mp-sub">{profile.checkoutSubtitle || product.name}</p>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------- designs
 
-/** Classic — order summary left, methods right. The layout nobody has to learn. */
+/**
+ * Classic — the receipt on the left, the form on the right.
+ *
+ * The layout nobody has to learn. The summary is a sticky rail so the thing
+ * being bought stays on screen while the buyer works down a long form, and the
+ * form gets the wider column because it is the part with the typing in it.
+ */
 function Classic({ profile, product, storeName, supportEmail, form, trust }: DesignProps) {
   return (
     <>
       <MerchantHeader profile={profile} storeName={storeName} />
       <Heading profile={profile} product={product} />
+
       <div
-        style={{
-          display: 'grid',
-          gap: 18,
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          alignItems: 'start',
-        }}
+        className="mp-split mp-split--buy-first"
+        style={{ ['--mp-cols' as string]: '0.86fr 1.14fr' }}
       >
-        <Card>
-          <Summary product={product} />
-          <Guarantee profile={profile} />
-        </Card>
-        <Card>
+        <div className="mp-stack mp-sticky mp-order-last">
+          <Card>
+            <OrderSummary product={product} />
+          </Card>
+          <GuaranteeNote profile={profile} />
+        </div>
+
+        <Card className="mp-card--lift mp-order-first">
           <CheckoutForm {...form}>{trust}</CheckoutForm>
         </Card>
       </div>
+
       <PolicyFooter profile={profile} storeName={storeName} supportEmail={supportEmail} />
     </>
   );
 }
 
-/** Lite — one column, stripped to product, price, pay. Fastest on a 3G phone. */
+/**
+ * Lite — one column, no cards, nothing to paint.
+ *
+ * Deliberately plain rather than merely narrow: no card surfaces, no imagery,
+ * hairlines instead of borders. It is the layout for a buyer on a bad
+ * connection, so every element it drops is the point rather than a compromise.
+ */
 function Lite({ profile, product, storeName, supportEmail, form, trust }: DesignProps) {
   return (
     <>
       <MerchantHeader profile={profile} storeName={storeName} />
-      <Card>
-        <p style={labelCaps}>{product.name}</p>
-        <p style={{ margin: '6px 0 0', fontSize: 28, fontWeight: 700, color: 'var(--mp-primary)' }}>
-          {formatMoney(product.priceCents, product.currency)}
-        </p>
-        <div style={{ marginTop: 18 }}>
-          <CheckoutForm {...form}>{trust}</CheckoutForm>
+
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 14 }}>
+        <div style={{ minWidth: 0 }}>
+          <p className="mp-eyebrow">You are buying</p>
+          <h1 className="mp-title mp-title--sm" style={{ marginTop: 7 }}>
+            {product.name}
+          </h1>
         </div>
-      </Card>
+        <p className="mp-price" style={{ whiteSpace: 'nowrap' }}>
+          {price(product)}
+        </p>
+      </div>
+
+      {product.durationDays > 0 ? (
+        <p className="mp-fine" style={{ marginTop: 8 }}>
+          {product.durationDays} days of access, renewable.
+        </p>
+      ) : null}
+
+      <hr className="mp-rule" />
+
+      <CheckoutForm {...form}>{trust}</CheckoutForm>
+
       <PolicyFooter profile={profile} storeName={storeName} supportEmail={supportEmail} />
     </>
   );
 }
 
-/** Storefront — product-led, for goods people want to look at before buying. */
+/**
+ * Storefront — product first, for goods people want to look at.
+ *
+ * The image gets a fixed frame so one tall photograph cannot push the buy
+ * panel below the fold, and the buy panel sticks, because on this layout the
+ * left column is the thing people scroll.
+ */
 function Storefront({ profile, product, storeName, supportEmail, form, trust }: DesignProps) {
   return (
     <>
       <MerchantHeader profile={profile} storeName={storeName} />
+
       <div
-        style={{
-          display: 'grid',
-          gap: 20,
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          alignItems: 'start',
-        }}
+        className="mp-split mp-split--buy-first"
+        style={{ ['--mp-cols' as string]: '1.04fr 0.96fr', ['--mp-gap' as string]: '28px' }}
       >
-        <div>
-          {product.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- merchant-hosted asset
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              style={{
-                width: '100%',
-                display: 'block',
-                borderRadius: 'var(--mp-radius)',
-                border: '1px solid var(--mp-border)',
-              }}
-            />
-          ) : null}
-          <h1 style={{ margin: '18px 0 0', fontSize: 26, letterSpacing: '-0.02em' }}>
-            {product.name}
-          </h1>
-          <p style={{ margin: '8px 0 0', fontSize: 24, fontWeight: 700, color: 'var(--mp-primary)' }}>
-            {formatMoney(product.priceCents, product.currency)}
-          </p>
-          {product.description ? (
-            <div
-              style={{ marginTop: 14, fontSize: 14, lineHeight: 1.7, color: 'var(--mp-text-muted)' }}
-              dangerouslySetInnerHTML={{ __html: product.description }}
-            />
-          ) : null}
-          <Guarantee profile={profile} />
+        <div className="mp-stack mp-order-last" style={{ ['--mp-gap' as string]: '20px' }}>
+          <ProductImage product={product} frame="mp-media--wide" fallback />
+
+          <div>
+            <p className="mp-eyebrow">{storeName}</p>
+            <h1 className="mp-title mp-title--lg" style={{ marginTop: 9 }}>
+              {product.name}
+            </h1>
+            <div className="mp-price-row" style={{ marginTop: 12 }}>
+              <p className="mp-price">{price(product)}</p>
+              {product.durationDays > 0 ? (
+                <span className="mp-fine">per {product.durationDays} days</span>
+              ) : null}
+            </div>
+          </div>
+
+          <Description product={product} large />
+          <ProductFacts product={product} />
+          <GuaranteeNote profile={profile} />
         </div>
-        <Card>
+
+        {/* A buy box: the price travels with the form as the left column
+            scrolls, so the number is never more than a glance away. */}
+        <Card className="mp-card--lift mp-sticky mp-order-first">
+          <div className="mp-buybox">
+            <div style={{ minWidth: 0 }}>
+              <p className="mp-eyebrow">Buy now</p>
+              <p className="mp-note" style={{ marginTop: 6, color: 'var(--mp-text)' }}>
+                {product.name}
+              </p>
+            </div>
+            <p className="mp-price mp-price--sm" style={{ whiteSpace: 'nowrap' }}>
+              {price(product)}
+            </p>
+          </div>
           <CheckoutForm {...form}>{trust}</CheckoutForm>
         </Card>
       </div>
+
       <PolicyFooter profile={profile} storeName={storeName} supportEmail={supportEmail} />
     </>
   );
 }
 
-/** Express — methods above the fold, for buyers who have already decided. */
+/**
+ * Express — the total pinned to the top, the rails before the questions.
+ *
+ * For a buyer who has already decided. The price rides in a sticky bar so it
+ * never scrolls away, the rails come first as tiles because choosing one is
+ * the only decision left, and the totals panel is dropped rather than printed
+ * twice.
+ */
 function Express({ profile, product, storeName, supportEmail, form, trust }: DesignProps) {
   return (
     <>
-      <MerchantHeader profile={profile} storeName={storeName} />
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'baseline',
-          justifyContent: 'space-between',
-          gap: 10,
-          marginBottom: 16,
-        }}
-      >
-        <h1 style={{ margin: 0, fontSize: 20, letterSpacing: '-0.01em' }}>{product.name}</h1>
-        <p style={{ margin: 0, fontSize: 24, fontWeight: 700, color: 'var(--mp-primary)' }}>
-          {formatMoney(product.priceCents, product.currency)}
-        </p>
+      <div className="mp-bar">
+        <div className="mp-bar-inner">
+          <span style={{ minWidth: 0, fontSize: 13.5, fontWeight: 600 }}>{product.name}</span>
+          <span className="mp-price mp-price--sm" style={{ whiteSpace: 'nowrap' }}>
+            {price(product)}
+          </span>
+        </div>
       </div>
-      <Card>
-        <CheckoutForm {...form}>{trust}</CheckoutForm>
-      </Card>
-      <PolicyFooter profile={profile} storeName={storeName} supportEmail={supportEmail} />
-    </>
-  );
-}
 
-/** Hero — checkout as a sales page, for cold traffic from an ad. */
-function Hero({ profile, product, storeName, supportEmail, form, trust }: DesignProps) {
-  return (
-    <>
-      <MerchantHeader profile={profile} storeName={storeName} />
-      <div style={{ textAlign: 'center', marginBottom: 26 }}>
-        <h1 style={{ margin: 0, fontSize: 34, lineHeight: 1.15, letterSpacing: '-0.03em' }}>
-          {profile.checkoutTitle || product.name}
+      <div className="mp-shell mp-shell--narrow" style={{ paddingTop: 24 }}>
+        <MerchantHeader profile={profile} storeName={storeName} />
+
+        <p className="mp-eyebrow mp-eyebrow--primary">Express checkout</p>
+        <h1 className="mp-title mp-title--sm" style={{ marginTop: 8, marginBottom: 20 }}>
+          {profile.checkoutTitle || 'Pick how you want to pay'}
         </h1>
-        {profile.checkoutSubtitle ? (
-          <p
-            style={{
-              margin: '12px auto 0',
-              maxWidth: 480,
-              fontSize: 15.5,
-              lineHeight: 1.6,
-              color: 'var(--mp-text-muted)',
-            }}
-          >
-            {profile.checkoutSubtitle}
+
+        <Card className="mp-card--lift">
+          <CheckoutForm {...form} methodsFirst tiles compactTotals>
+            {trust}
+          </CheckoutForm>
+        </Card>
+
+        {profile.guaranteeText ? (
+          <p className="mp-fine" style={{ marginTop: 16, textAlign: 'center' }}>
+            {profile.guaranteeTitle} · {profile.guaranteeDays} days
           </p>
         ) : null}
-        <p style={{ margin: '18px 0 0', fontSize: 32, fontWeight: 800, color: 'var(--mp-primary)' }}>
-          {formatMoney(product.priceCents, product.currency)}
-        </p>
+
+        <PolicyFooter profile={profile} storeName={storeName} supportEmail={supportEmail} />
       </div>
-      <Card>
-        <CheckoutForm {...form}>{trust}</CheckoutForm>
-      </Card>
-      <Guarantee profile={profile} />
-      <Testimonials profile={profile} />
-      <PolicyFooter profile={profile} storeName={storeName} supportEmail={supportEmail} />
     </>
   );
 }
 
-/** Trust — proof around the pay button, for an unfamiliar brand or a big ticket. */
+/**
+ * Hero — checkout as a sales page, for cold traffic off an ad.
+ *
+ * The one layout that assumes the buyer has not been sold yet: a full-bleed
+ * headline band carries the offer, the form sits in a narrow column under it,
+ * and the proof goes below the fold where it answers the doubt that stopped
+ * them rather than competing with the pitch.
+ */
+function Hero({ profile, product, storeName, supportEmail, form, trust }: DesignProps) {
+  const quotes = readTestimonials(profile);
+
+  return (
+    <>
+      <div className="mp-band">
+        <div className="mp-shell mp-shell--narrow mp-center" style={{ padding: 0 }}>
+          <MerchantHeader profile={profile} storeName={storeName} align="center" />
+
+          <p className="mp-eyebrow mp-eyebrow--primary">
+            {product.durationDays > 0 ? `${product.durationDays} days of access` : 'One-off purchase'}
+          </p>
+          <h1 className="mp-title mp-title--xl" style={{ marginTop: 12 }}>
+            {profile.checkoutTitle || product.name}
+          </h1>
+          {profile.checkoutSubtitle ? (
+            <p className="mp-sub mp-sub--lg mp-measure">{profile.checkoutSubtitle}</p>
+          ) : null}
+
+          <p className="mp-price mp-price--xl" style={{ marginTop: 22 }}>
+            {price(product)}
+          </p>
+          {product.durationDays > 0 ? (
+            <p className="mp-fine" style={{ marginTop: 8 }}>
+              per {product.durationDays} days · cancel whenever you like
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mp-shell mp-shell--narrow" style={{ paddingTop: 8 }}>
+        <Card className="mp-card--lift mp-card--accent">
+          <CheckoutForm {...form} largeCta>
+            {trust}
+          </CheckoutForm>
+        </Card>
+      </div>
+
+      {profile.guaranteeText || quotes.length > 0 ? (
+        <div className="mp-band mp-band--foot">
+          <div className="mp-shell mp-shell--wide mp-stack" style={{ padding: 0 }}>
+            <GuaranteeNote profile={profile} />
+            <Quotes profile={profile} row />
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mp-shell mp-shell--narrow" style={{ paddingTop: 0 }}>
+        <PolicyFooter profile={profile} storeName={storeName} supportEmail={supportEmail} />
+      </div>
+    </>
+  );
+}
+
+/**
+ * Trust — the proof wrapped around the pay button.
+ *
+ * For an unfamiliar brand or a big ticket, where the question is not what this
+ * costs but whether the money will arrive anywhere. The form leads, and the
+ * rail beside it answers the three things a hesitant buyer actually wants: what
+ * happens after I pay, who says this worked, and what if it does not.
+ */
 function Trust({ profile, product, storeName, supportEmail, form, trust }: DesignProps) {
   return (
     <>
       <MerchantHeader profile={profile} storeName={storeName} />
       <Heading profile={profile} product={product} />
+
       <div
-        style={{
-          display: 'grid',
-          gap: 18,
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          alignItems: 'start',
-        }}
+        className="mp-split mp-split--buy-first"
+        style={{ ['--mp-cols' as string]: '1.12fr 0.88fr' }}
       >
-        <Card>
+        <Card className="mp-card--lift mp-card--accent mp-order-first">
           <CheckoutForm {...form}>{trust}</CheckoutForm>
         </Card>
-        <div>
+
+        <div className="mp-stack mp-sticky mp-order-last">
           <Card>
-            <Summary product={product} compact />
+            <OrderSummary product={product} showImage={false} showDescription={false} />
           </Card>
-          <Guarantee profile={profile} />
-          <Testimonials profile={profile} />
-          <TrustBadges profile={profile} />
+
+          <Card>
+            <WhatHappensNext product={product} />
+          </Card>
+
+          <GuaranteeNote profile={profile} />
+          <Quotes profile={profile} limit={2} />
+
+          <div>
+            <TrustBadges profile={profile} />
+            <p className="mp-fine" style={{ marginTop: 12, display: 'flex', gap: 7 }}>
+              <CheckMark />
+              Your card details are entered on the payment provider site, never here.
+            </p>
+          </div>
         </div>
       </div>
+
       <PolicyFooter profile={profile} storeName={storeName} supportEmail={supportEmail} />
     </>
   );
 }
-
-const labelCaps: React.CSSProperties = {
-  margin: 0,
-  fontSize: 11,
-  fontWeight: 700,
-  letterSpacing: '.07em',
-  textTransform: 'uppercase',
-  color: 'var(--mp-text-faint)',
-};

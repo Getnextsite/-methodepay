@@ -72,12 +72,15 @@ export function DesignEditor({
   availableDesigns,
   allDesigns,
   designCopy,
+  previewUrl,
 }: {
   values: Values;
   fullEditor: boolean;
   availableDesigns: CheckoutDesign[];
   allDesigns: CheckoutDesign[];
   designCopy: Record<CheckoutDesign, { name: string; tag: string; blurb: string }>;
+  /** A real product checkout to try layouts on, if the merchant has one. */
+  previewUrl: string | null;
 }) {
   const [design, setDesign] = useState(values.design);
   const [colors, setColors] = useState({
@@ -132,6 +135,19 @@ export function DesignEditor({
               );
             })}
           </div>
+
+          {/* The checkout honours ?design= when the plan allows that layout, so
+              a merchant can try one on a real product before saving it. */}
+          {previewUrl && availableDesigns.includes(design) ? (
+            <a
+              href={`${previewUrl}?design=${design}`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-block text-xs font-medium text-mint hover:underline"
+            >
+              Open {designCopy[design].name} on a real product →
+            </a>
+          ) : null}
         </section>
 
         <section className="card space-y-4 p-5">
@@ -495,7 +511,7 @@ function Preview({
   design: CheckoutDesign;
   designName: string;
 }) {
-  const twoColumn = design === 'CLASSIC' || design === 'STOREFRONT';
+  const twoColumn = design === 'CLASSIC' || design === 'STOREFRONT' || design === 'TRUST';
   const heroTop = design === 'HERO';
 
   return (

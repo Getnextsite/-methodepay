@@ -1,13 +1,17 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import type { CheckoutDesign } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { loadMerchantContext } from '@/lib/gateway/context';
 import { resolveMethods } from '@/lib/gateway/resolve';
 import { inStock } from '@/lib/shipping';
+import { canUseDesign, entitlementsFor } from '@/lib/entitlements';
+import { ALL_DESIGNS } from '@/lib/checkout/design-copy';
 import { CheckoutShell, TrustBadges } from '@/components/checkout/shell';
-import { CheckoutView } from '@/components/checkout/designs';
+import { CheckoutView, shellWidthFor } from '@/components/checkout/designs';
 
 type Params = { account: string; product: string };
+type Search = { design?: string };
 
 // Checkout pages are per-buyer and price-sensitive; never served from a cache.
 export const dynamic = 'force-dynamic';
@@ -34,7 +38,33 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   };
 }
 
-export default async function CheckoutPage({ params }: { params: Params }) {
+/**
+ * A layout override for previewing, honest about the plan gate.
+ *
+ * Merchants want to see a layout on their own product before committing to it,
+ * and `?design=HERO` is the cheapest way to offer that. It is still a URL
+ * anyone can type, so it is checked against the account entitlements rather
+ * than trusted: a Starter merchant linking buyers to `?design=HERO` gets
+ * Classic, the same as if they had never asked.
+ */
+function requestedDesign(
+  search: Search | undefined,
+  account: Parameters<typeof entitlementsFor>[0],
+): CheckoutDesign | null {
+  const raw = search?.design?.toUpperCase();
+  if (!raw) return null;
+  const design = ALL_DESIGNS.find((d) => d === raw);
+  if (!design) return null;
+  return canUseDesign(entitlementsFor(account), design) ? design : null;
+}
+
+export default async function CheckoutPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams?: Search;
+}) {
   const data = await load(params);
   if (!data) notFound();
 
@@ -77,16 +107,17 @@ export default async function CheckoutPage({ params }: { params: Params }) {
   }
 
   const methods = resolveMethods(ctx, product);
-  const wide = ctx.profile.design !== 'LITE' && ctx.profile.design !== 'EXPRESS';
+  const design = requestedDesign(searchParams, account) ?? ctx.profile.design;
+  const profile = design === ctx.profile.design ? ctx.profile : { ...ctx.profile, design };
 
   return (
-    <CheckoutShell profile={ctx.profile} wide={wide}>
+    <CheckoutShell profile={profile} width={shellWidthFor(design)}>
       <CheckoutView
-        profile={ctx.profile}
+        profile={profile}
         product={product}
         storeName={storeName}
         supportEmail={ctx.notifications.supportEmail}
-        trust={ctx.profile.design === 'TRUST' ? null : <TrustBadges profile={ctx.profile} />}
+        trust={design === 'TRUST' ? null : <TrustBadges profile={profile} />}
         form={{
           productId: product.id,
           currency: product.currency,
