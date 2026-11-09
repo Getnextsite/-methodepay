@@ -42,7 +42,11 @@ async function createStoreAction(_prev: ActionState, formData: FormData): Promis
 
   await provisionAccountDefaults(account.id, name);
   await setActiveAccount(account.id);
-  redirect('/dashboard?welcome=1');
+
+  // A new store has no way to take money yet, so the dashboard would be a wall
+  // of empty screens. The wizard asks for what the merchant already has — an
+  // address, a phone number — before it asks them to learn anything.
+  redirect('/onboarding/setup/store');
 }
 
 /**

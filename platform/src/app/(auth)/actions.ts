@@ -65,7 +65,11 @@ export async function signUpAction(_prev: FormState, formData: FormData): Promis
   await provisionAccountDefaults(accountId, storeName);
   await createSession(user.id);
   await setActiveAccount(accountId);
-  redirect('/dashboard?welcome=1');
+
+  // Straight into setup rather than the dashboard. A store with no rail
+  // configured cannot take a penny, and every dashboard screen at that point
+  // is an empty state asking the merchant to go and find something else.
+  redirect('/onboarding/setup/store');
 }
 
 const signInSchema = z.object({

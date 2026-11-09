@@ -68,6 +68,24 @@ export default async function OverviewPage() {
         </Banner>
       ) : null}
 
+      {/* Derived, not a stored flag: the nudge goes away the moment a buyer
+          could actually pay, which is the only definition of "set up" worth
+          tracking. */}
+      {liveRails === 0 ? (
+        <Banner
+          tone="warn"
+          action={
+            <Link href="/onboarding/setup/store" className="btn-primary !py-2 !text-xs">
+              Set up payments
+            </Link>
+          }
+        >
+          <strong className="font-semibold">No way to pay you yet.</strong> A checkout page would
+          have nothing to offer a buyer. The setup walkthrough takes a crypto address or a WhatsApp
+          number and has you taking money in a couple of minutes.
+        </Banner>
+      ) : null}
+
       {incomplete.length > 0 ? (
         <Banner
           tone="info"
