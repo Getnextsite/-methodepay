@@ -157,6 +157,7 @@ export const METHOD_DEFINITIONS: MethodDefinition[] = [
   // because "Cards / Bank / Crypto" tested badly against a Binance logo.
   ...(
     [
+      ['op_cashapp', 'Cash App', 'cashapp', 'Pay with Cash App via Transak.', '#00d632'],
       ['op_binance', 'Binance Pay', 'binance', 'Pay with your Binance balance or Binance Pay.', '#f0b90b'],
       ['op_revolut', 'Revolut', 'revolut', 'Pay instantly with your Revolut account.', '#0075eb'],
       ['op_upi', 'UPI', 'upi', 'Pay by UPI — Google Pay, PhonePe, Paytm and more.', '#ff7a00'],

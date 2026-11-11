@@ -190,7 +190,7 @@ function eq<T>(name: string, actual: T, expected: T) {
 {
   const keys = METHOD_DEFINITIONS.map((d) => d.key);
   check('registry has no duplicate keys', new Set(keys).size === keys.length);
-  check('registry covers 17 rails', keys.length === 17, `got ${keys.length}`);
+  check('registry covers 18 rails', keys.length === 18, `got ${keys.length}`);
 
   for (const def of METHOD_DEFINITIONS) {
     check(`${def.key} has a label`, def.defaultLabel.length > 0);

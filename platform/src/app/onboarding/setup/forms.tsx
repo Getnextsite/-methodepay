@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ActionForm, SubmitButton } from '@/components/action-form';
 import { Field } from '@/components/ui';
+import { MethodIcon } from '@/components/checkout/method-icon';
 import { RAIL_STATUS_COPY, type RailFieldSpec, type RailSpec } from '@/lib/onboarding/steps';
 import { saveChatStep, saveCryptoStep, saveRailsStep, saveStoreStep } from './actions';
 
@@ -96,11 +97,7 @@ function RailBlock({ rail }: { rail: RailSpec }) {
     <section className="rounded-xl border border-ink-600 bg-ink-900/40 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="flex items-center gap-2.5">
-          <span
-            aria-hidden
-            className="h-2.5 w-2.5 rounded-full"
-            style={{ background: rail.tone }}
-          />
+          <MethodIcon rail={rail.key} tone={rail.tone} size={22} />
           <span className="text-sm font-medium text-white">{rail.label}</span>
         </span>
         <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${status.className}`}>

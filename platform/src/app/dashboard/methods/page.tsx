@@ -7,6 +7,7 @@ import { readConfig } from '@/lib/gateway/config';
 import { canUseMethod, entitlementsFor, PLANS, tierUnlocking } from '@/lib/entitlements';
 import type { MethodGroup } from '@/lib/gateway/types';
 import { PageHeader, Section } from '@/components/ui';
+import { MethodIcon } from '@/components/checkout/method-icon';
 import { ToggleMethod } from './toggle';
 
 export const metadata: Metadata = { title: 'Payment methods' };
@@ -78,11 +79,9 @@ export default async function MethodsPage() {
                       key={def.key}
                       className="flex items-start gap-3 rounded-xl border border-ink-600/70 bg-ink-900/40 p-4"
                     >
-                      <span
-                        aria-hidden
-                        className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
-                        style={{ background: def.tone }}
-                      />
+                      <span className="mt-0.5">
+                        <MethodIcon rail={def.key} tone={def.tone} size={22} />
+                      </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">

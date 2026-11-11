@@ -27,6 +27,7 @@ import {
   type RailSpec,
 } from '@/lib/onboarding/steps';
 import { ChatForm, CryptoForm, RailsForm, StoreForm } from '../forms';
+import { MethodIcon } from '@/components/checkout/method-icon';
 
 export const dynamic = 'force-dynamic';
 
@@ -240,7 +241,7 @@ function Summary({
           <ul className="mt-3 space-y-1.5">
             {live.map((rail) => (
               <li key={rail.key} className="flex items-center gap-2.5 text-sm text-ink-100">
-                <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: rail.tone }} />
+                <MethodIcon rail={rail.key} tone={rail.tone} size={20} />
                 {rail.label}
               </li>
             ))}
@@ -291,9 +292,9 @@ function Summary({
             {upgrade.map((rail) => (
               <li
                 key={rail.key}
-                className="flex items-center gap-1.5 rounded-full border border-ink-600 bg-ink-900/60 px-2.5 py-1 text-[11px] text-ink-300"
+                className="flex items-center gap-1.5 rounded-full border border-ink-600 bg-ink-900/60 py-1 pl-1 pr-2.5 text-[11px] text-ink-300"
               >
-                <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: rail.tone }} />
+                <MethodIcon rail={rail.key} tone={rail.tone} size={16} />
                 {rail.label}
               </li>
             ))}

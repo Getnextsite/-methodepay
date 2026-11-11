@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { formatMoney } from '@/lib/money';
 import type { AvailableMethod } from '@/lib/gateway/types';
+import { MethodIcon } from './method-icon';
 
 export type CheckoutFormProps = {
   productId: string;
@@ -290,10 +291,11 @@ export function CheckoutForm(props: CheckoutFormProps) {
               <span className="mp-method-body">
                 <span className="mp-method-head">
                   {option.iconUrl ? (
+                    // A merchant with the rights to the real artwork wins.
                     // eslint-disable-next-line @next/next/no-img-element -- merchant-hosted icon
-                    <img src={option.iconUrl} alt="" style={{ height: 16, width: 'auto' }} />
+                    <img src={option.iconUrl} alt="" style={{ height: 20, width: 'auto' }} />
                   ) : (
-                    <span aria-hidden className="mp-dot" style={{ background: option.tone }} />
+                    <MethodIcon rail={option.key} tone={option.tone} size={20} />
                   )}
                   <span className="mp-method-name">{option.label}</span>
                   {option.recommended ? <span className="mp-tag">Recommended</span> : null}

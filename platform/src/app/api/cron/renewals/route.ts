@@ -144,3 +144,7 @@ export async function POST(request: Request) {
     stale_orders_expired: staleExpired.count,
   });
 }
+
+// Vercel Cron calls scheduled paths with GET and sends
+// `Authorization: Bearer $CRON_SECRET`, so the same handler serves both.
+export const GET = POST;

@@ -39,6 +39,7 @@ const ALL_METHODS = [
   'paypal',
   'alchemypay',
   'onramppay',
+  'op_cashapp',
   'op_binance',
   'op_revolut',
   'op_upi',

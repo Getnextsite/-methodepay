@@ -130,7 +130,7 @@ export default function CheckoutMockup() {
 
       {/* Telegram alert card */}
       <div
-        className={`glass absolute -bottom-5 -right-3 w-[248px] p-3.5 transition-all duration-500 sm:-right-8 ${
+        className={`glass absolute -bottom-20 -right-2 w-[248px] p-3.5 transition-all duration-500 sm:-right-6 ${
           paid ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
         }`}
       >
@@ -151,8 +151,8 @@ export default function CheckoutMockup() {
 
       {/* email delivery card */}
       <div
-        className={`glass absolute -left-3 top-10 hidden w-[210px] p-3 transition-all duration-500 lg:block ${
-          paid ? 'translate-x-0 opacity-100' : '-translate-x-3 opacity-0'
+        className={`glass absolute -top-14 left-1 hidden w-[210px] p-3 transition-all duration-500 lg:block ${
+          paid ? 'translate-y-0 opacity-100' : '-translate-y-3 opacity-0'
         }`}
       >
         <p className="text-[11px] font-semibold text-white">Email delivered · 2s</p>

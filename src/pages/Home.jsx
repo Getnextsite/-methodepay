@@ -61,8 +61,8 @@ export default function Home() {
           color="rgba(79,70,229,0.28)"
         />
 
-        <div className="container-page relative pb-20 pt-16 sm:pt-24">
-          <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_1fr] lg:gap-10">
+        <div className="container-page relative pb-32 pt-16 sm:pb-24 sm:pt-24">
+          <div className="grid items-center gap-14 lg:grid-cols-[1.12fr_1fr] lg:gap-10">
             <div>
               <Reveal>
                 <p className="eyebrow">
@@ -72,9 +72,10 @@ export default function Home() {
               </Reveal>
 
               <Reveal delay={70}>
-                <h1 className="mt-5 text-[2.6rem] font-extrabold leading-[1.03] tracking-tightest text-white sm:text-6xl">
+                <h1 className="mt-5 text-[2.6rem] font-extrabold leading-[1.03] tracking-tightest text-white [text-wrap:initial] sm:text-6xl">
                   Accept payments anywhere.
-                  <span className="block gradient-text">No WooCommerce. No rejections.</span>
+                  <span className="block gradient-text">No WooCommerce.</span>
+                  <span className="block gradient-text">No rejections.</span>
                 </h1>
               </Reveal>
 
