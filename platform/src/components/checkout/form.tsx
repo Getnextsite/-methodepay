@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatMoney } from '@/lib/money';
 import type { AvailableMethod } from '@/lib/gateway/types';
 import { MethodIcon } from './method-icon';
@@ -84,6 +84,7 @@ export function CheckoutForm(props: CheckoutFormProps) {
   const [checkingCoupon, setCheckingCoupon] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [handoff, setHandoff] = useState<Handoff | null>(null);
 
   const selected = useMemo(() => methods.find((m) => m.key === method) ?? null, [methods, method]);
   const total = Math.max(0, priceCents - totals.discountCents);
@@ -156,8 +157,22 @@ export function CheckoutForm(props: CheckoutFormProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      const json = (await res.json()) as { url?: string; error?: string };
+      const json = (await res.json()) as { url?: string; qr?: string; error?: string };
       if (json.url) {
+        // On a computer, offer to carry on by phone. On a phone the buyer is
+        // already where the app is, so a QR would only be in the way.
+        const desktop = window.matchMedia('(min-width: 1025px)').matches;
+        if (json.qr && desktop) {
+          setHandoff({
+            url: json.url,
+            qr: json.qr,
+            method,
+            label: selected?.label ?? 'Payment',
+            tone: selected?.tone ?? '',
+            amount: money(total, currency),
+          });
+          return;
+        }
         window.location.href = json.url;
         return;
       }
@@ -429,7 +444,97 @@ export function CheckoutForm(props: CheckoutFormProps) {
           </p>
         </div>
       </div>
+      {handoff ? <HandoffDialog handoff={handoff} onClose={() => setHandoff(null)} /> : null}
     </form>
+  );
+}
+
+// ---------------------------------------------------------------- handoff
+
+type Handoff = {
+  url: string;
+  qr: string;
+  method: string;
+  label: string;
+  tone: string;
+  amount: string;
+};
+
+/**
+ * "Scan to pay on your phone, or continue here."
+ *
+ * The payment link belongs to an order that already exists, so both routes
+ * lead to the same order. Returning to the checkout abandons that link; paying
+ * again later simply starts a fresh order.
+ */
+function HandoffDialog({ handoff, onClose }: { handoff: Handoff; onClose: () => void }) {
+  const backRef = useRef<HTMLButtonElement>(null);
+  const isChat = handoff.method === 'whatsapp';
+
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    backRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = overflow;
+      previous?.focus?.();
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="mp-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mp-modal-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="mp-modal-card">
+        <div className="mp-modal-head">
+          <MethodIcon rail={handoff.method} tone={handoff.tone} size={22} />
+          <h3 id="mp-modal-title" className="mp-modal-title">
+            {handoff.label}
+          </h3>
+          <span className="mp-modal-amount">{handoff.amount}</span>
+        </div>
+
+        <div className="mp-modal-qr">
+          {/* eslint-disable-next-line @next/next/no-img-element -- inline data URL */}
+          <img
+            src={handoff.qr}
+            alt="QR code: scan to continue this payment on your phone"
+            width={200}
+            height={200}
+          />
+        </div>
+        <p className="mp-note" style={{ textAlign: 'center' }}>
+          {isChat
+            ? 'Scan with your phone to open this order in WhatsApp, or continue below.'
+            : 'Scan with your phone to pay there, or continue below.'}
+        </p>
+
+        <div className="mp-modal-actions">
+          <a
+            className="mp-btn"
+            href={handoff.url}
+            style={{ textAlign: 'center', textDecoration: 'none' }}
+          >
+            {isChat ? 'Open WhatsApp on this device' : 'Continue on this device'}
+          </a>
+          <button type="button" ref={backRef} className="mp-btn-ghost" onClick={onClose}>
+            Return to checkout
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

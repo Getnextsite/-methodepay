@@ -466,6 +466,47 @@ textarea.mp-input { resize: vertical; min-height: 78px; }
 .mp-foot a:hover { color: var(--mp-text-muted); }
 .mp-foot-links { display: flex; gap: 14px; }
 
+/* ---------------------------------------------------------------- handoff dialog */
+
+.mp-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(8, 8, 14, 0.62);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: mp-modal-in 0.18s ease-out;
+}
+.mp-modal-card {
+  width: 100%;
+  max-width: 380px;
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  background: var(--mp-card);
+  color: var(--mp-text);
+  border: 1px solid var(--mp-border);
+  border-radius: var(--mp-radius);
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.55);
+}
+.mp-modal-head { display: flex; align-items: center; gap: 10px; }
+.mp-modal-title { margin: 0; flex: 1; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+.mp-modal-amount { font-size: 15px; font-weight: 700; color: var(--mp-primary); }
+.mp-modal-qr {
+  justify-self: center;
+  padding: 12px;
+  background: #fff;
+  border-radius: var(--mp-radius-sm);
+  line-height: 0;
+}
+.mp-modal-qr img { display: block; width: 200px; height: 200px; }
+.mp-modal-actions { display: grid; gap: 10px; }
+.mp-modal-actions .mp-btn-ghost { width: 100%; }
+@keyframes mp-modal-in { from { opacity: 0; } to { opacity: 1; } }
+
 @media (prefers-reduced-motion: reduce) {
   .mp-page * { transition: none !important; animation: none !important; }
 }

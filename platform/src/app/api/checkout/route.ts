@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import QRCode from 'qrcode';
 import { prisma } from '@/lib/db';
 import { loadMerchantContext } from '@/lib/gateway/context';
 import { resolveMethods } from '@/lib/gateway/resolve';
@@ -9,6 +10,30 @@ import { inStock } from '@/lib/shipping';
 import { env } from '@/lib/env';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * Rails a buyer on a computer usually wants to finish on their phone: the
+ * wallet apps (Binance, Revolut, UPI, PayPal, Cash App) and WhatsApp all live
+ * there. For these the checkout offers a QR of the payment link instead of
+ * redirecting straight away, as the plugin did.
+ */
+const QR_RAILS = new Set([
+  'op_binance',
+  'op_revolut',
+  'op_upi',
+  'op_paypalus',
+  'op_cashapp',
+  'whatsapp',
+]);
+
+async function qrFor(url: string): Promise<string | null> {
+  try {
+    return await QRCode.toDataURL(url, { errorCorrectionLevel: 'M', margin: 1, width: 360 });
+  } catch {
+    // A missing QR only costs the shortcut; the buyer still gets the link.
+    return null;
+  }
+}
 
 const schema = z.object({
   productId: z.string().min(1),
@@ -157,5 +182,10 @@ export async function POST(request: Request) {
     });
   }
 
-  return NextResponse.json({ url, ref: order.ref });
+  const qr =
+    QR_RAILS.has(chosen.key) && (result.kind === 'redirect' || result.kind === 'chat')
+      ? await qrFor(url)
+      : null;
+
+  return NextResponse.json({ url, ref: order.ref, ...(qr ? { qr } : {}) });
 }
