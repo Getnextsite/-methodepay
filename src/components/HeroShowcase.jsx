@@ -87,7 +87,15 @@ export default function HeroShowcase() {
     <div className="relative mx-auto max-w-5xl">
       <div className="animate-stage-in motion-reduce:animate-none">
         <div className="relative lg:px-16">
-          <DashboardMockup />
+          <div className="glass ring-gradient overflow-hidden">
+            <img
+              src="/shots/dashboard-overview.webp"
+              alt="The MethodePay dashboard: paid revenue, orders awaiting verification, recent orders and checkout links."
+              width={2880}
+              height={1800}
+              className="block h-auto w-full"
+            />
+          </div>
 
           {/* desktop checkout, front left */}
           <div
@@ -102,7 +110,16 @@ export default function HeroShowcase() {
             className="absolute -bottom-12 -right-4 z-10 hidden animate-float-slow motion-reduce:animate-none [animation-delay:-3s] lg:block xl:-right-12"
             style={{ '--tilt': '3deg' }}
           >
-            <PhoneCheckout />
+            <div className="w-[212px] overflow-hidden rounded-[34px] border border-white/[0.14] bg-ink-800 p-2 shadow-lift">
+              <img
+                src="/shots/checkout-mobile.webp"
+                alt="The Express checkout design on a phone."
+                width={1170}
+                height={2532}
+                loading="lazy"
+                className="block h-[420px] w-full rounded-[27px] object-cover object-top"
+              />
+            </div>
           </div>
 
           <Chip className="-top-4 left-[18%]" style={{ animationDelay: '-2s' }}>

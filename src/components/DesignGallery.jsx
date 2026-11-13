@@ -314,8 +314,13 @@ export default function DesignGallery() {
         </div>
         <p className="px-4 pt-3 text-xs text-zinc-400 lg:hidden">{design.blurb}</p>
         {/* key remounts the layout so each design fades in */}
-        <div key={design.name} aria-hidden="true" className="h-[400px] animate-fade-up p-4 sm:h-[340px] sm:p-5">
-          <Layout />
+        <div key={design.name} className="h-[400px] animate-fade-up p-4 sm:h-[340px] sm:p-5">
+          <img
+            src={`/shots/checkout-${design.name.toLowerCase()}.webp`}
+            alt={`The ${design.name} checkout design.`}
+            loading="lazy"
+            className="block h-full w-full rounded-xl border border-white/[0.08] object-cover object-top"
+          />
         </div>
       </div>
     </div>
