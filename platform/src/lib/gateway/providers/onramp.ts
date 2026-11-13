@@ -1,5 +1,7 @@
 import 'server-only';
 import { createHmac } from 'node:crypto';
+import { prisma } from '../../db';
+import { env } from '../../env';
 import { fromCents } from '../../money';
 import { readConfig } from '../config';
 import type { InitiateInput, InitiateResult, MethodConfig } from '../types';
@@ -20,7 +22,48 @@ import type { InitiateInput, InitiateResult, MethodConfig } from '../types';
  * these rails land in AWAITING_VERIFICATION, never straight to PAID.
  */
 
-export function initiateOnRamPay(input: InitiateInput, lockedProvider?: string): InitiateResult {
+/** Hostname only: strips scheme, path and anything that is not a host char. */
+function cleanHost(value: unknown, fallback: string): string {
+  const host = String(value ?? '')
+    .trim()
+    .replace(/^https?:\/\//i, '')
+    .replace(/[/?#].*$/, '')
+    .replace(/[^A-Za-z0-9.-]/g, '');
+  return host || fallback;
+}
+
+async function onrampGet(url: string): Promise<Record<string, unknown> | null> {
+  try {
+    const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(30_000) });
+    if (!res.ok) return null;
+    return (await res.json()) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Token OnRamPay echoes back on its callback. Derived from a server secret, so
+ * unlike the order nonce the buyer never sees it and cannot forge "I paid".
+ */
+export function onrampCallbackToken(orderId: string): string {
+  return createHmac('sha256', env.sessionSecret).update(`onramppay:${orderId}`).digest('hex');
+}
+
+/**
+ * OnRamPay, ported from the plugin's three-step flow:
+ *
+ *   1. convert the order total to USD        (control/convert.php)
+ *   2. register the payout wallet + callback (control/wallet.php -> address_in)
+ *   3. redirect to {domain}/process-payment.php with that address_in
+ *
+ * Skipping 1 and 2 and sending the wallet straight to the checkout host is
+ * what produces OnRamPay's "Invalid Request" page.
+ */
+export async function initiateOnRamPay(
+  input: InitiateInput,
+  lockedProvider?: string,
+): Promise<InitiateResult> {
   // A promoted button (Binance Pay, Revolut, UPI, PayPal US) may carry its own
   // wallet, or borrow the shared OnRamPay one.
   const shared = readConfig(
@@ -34,28 +77,84 @@ export function initiateOnRamPay(input: InitiateInput, lockedProvider?: string):
     return { kind: 'error', message: 'This payment method is not configured for this store.' };
   }
 
-  const domain = String(input.config.domain ?? shared.domain ?? 'checkout.onramp-pay.com');
-  const params = new URLSearchParams({
-    wallet,
-    amount: fromCents(input.order.amountCents, input.order.currency),
-    fiat: input.order.currency,
-    reference: input.order.ref,
-    redirect: `${input.origin}/o/${input.order.nonce}`,
-  });
+  const apiHost = cleanHost(input.config.apiDomain ?? shared.apiDomain, 'api.onramp-pay.com');
+  const domain = cleanHost(input.config.domain ?? shared.domain, 'checkout.onramp-pay.com');
 
-  const tag = lockedProvider ?? String(input.config.onrampTag ?? '').trim();
-  if (tag) params.set('provider', tag);
-
+  // Which on-ramp: the locked one, else the first the merchant enabled.
   const enabled = String(input.config.providers ?? shared.providers ?? '')
     .split(',')
-    .map((p) => p.trim())
+    .map((p) => p.trim().toLowerCase())
     .filter(Boolean);
-  if (!tag && enabled.length > 0) params.set('providers', enabled.join(','));
+  const tag =
+    (lockedProvider ?? String(input.config.onrampTag ?? '').trim()) || enabled[0] || 'stripe';
 
-  if (input.order.buyerEmail) params.set('email', input.order.buyerEmail);
-  if (input.order.buyerCountry) params.set('country', input.order.buyerCountry);
+  // 1. OnRamPay only prices in USD.
+  let amountUsd = Number(fromCents(input.order.amountCents, input.order.currency));
+  if (input.order.currency.toUpperCase() !== 'USD') {
+    const conv = await onrampGet(
+      `https://${apiHost}/control/convert.php?value=${encodeURIComponent(
+        fromCents(input.order.amountCents, input.order.currency),
+      )}&from=${encodeURIComponent(input.order.currency.toLowerCase())}`,
+    );
+    const converted = Number(conv?.value_coin);
+    if (!Number.isFinite(converted) || converted <= 0) {
+      return {
+        kind: 'error',
+        message: 'Currency conversion failed. Please try another payment method.',
+      };
+    }
+    amountUsd = converted;
+  }
+  amountUsd = Math.round(amountUsd * 100) / 100;
 
-  return { kind: 'redirect', url: `https://${domain}/?${params.toString()}` };
+  const minimum = ONRAMP_MINIMUMS[tag];
+  if (minimum !== undefined && amountUsd < minimum) {
+    return {
+      kind: 'error',
+      message: `This payment method needs an order of at least $${minimum.toFixed(2)} USD.`,
+    };
+  }
+
+  // 2. Register the payout wallet. OnRamPay answers with a one-off tracking
+  // address and will call us back on this URL when the buyer has paid.
+  const callback =
+    `${input.origin}/api/webhooks/provider/onramppay` +
+    `?order=${encodeURIComponent(input.order.ref)}&token=${onrampCallbackToken(input.order.id)}`;
+  const registered = await onrampGet(
+    `https://${apiHost}/control/wallet.php?address=${encodeURIComponent(wallet)}` +
+      `&callback=${encodeURIComponent(callback)}`,
+  );
+  const addressIn = String(registered?.address_in ?? '');
+  if (!addressIn) {
+    return {
+      kind: 'error',
+      message: 'Could not start this payment. The store needs to check its payout wallet address.',
+    };
+  }
+
+  const previousMeta =
+    input.order.meta && typeof input.order.meta === 'object' && !Array.isArray(input.order.meta)
+      ? (input.order.meta as Record<string, unknown>)
+      : {};
+  await prisma.order.update({
+    where: { id: input.order.id },
+    data: {
+      trackingAddress: addressIn,
+      payoutAddress: String(registered?.polygon_address_in ?? '') || null,
+      meta: { ...previousMeta, onrampTag: tag, onrampExpectedUsd: amountUsd },
+    },
+  });
+
+  // 3. address_in arrives already URL-safe; encoding it again breaks the page.
+  const url =
+    `https://${domain}/process-payment.php` +
+    `?address=${addressIn}` +
+    `&amount=${amountUsd}` +
+    `&provider=${encodeURIComponent(tag)}` +
+    `&email=${encodeURIComponent(input.order.buyerEmail)}` +
+    `&currency=USD`;
+
+  return { kind: 'redirect', url };
 }
 
 /**
@@ -118,15 +217,30 @@ export function finchpayWidgetUrl(amountCents: number, currency: string): string
   return `https://widget.finchpay.io/payment_method?${params.toString()}`;
 }
 
-/** Minimum order totals the aggregated on-ramps will accept, in USD. */
+/** Per-on-ramp minimum order totals in USD, as published by OnRamPay. */
 export const ONRAMP_MINIMUMS: Record<string, number> = {
-  moonpay: 30,
-  banxa: 30,
-  transak: 30,
+  interac: 1,
+  upi: 1,
+  stripe: 2,
+  rampnetwork: 4,
+  robinhood: 5,
+  revolut: 8,
+  bitnovo: 10,
+  kryptonim: 10,
+  topper: 10,
+  unlimit: 10,
   binance: 15,
-  revolut: 10,
-  upi: 5,
-  paypal: 10,
+  transak: 15,
+  banxa: 20,
+  cryptix: 20,
+  guardarian: 20,
+  moonpay: 20,
+  sardine: 30,
+  simplex: 50,
+  utorg: 50,
+  klarna: 70,
+  paypal: 70,
+  transfi: 70,
 };
 
 export function onrampMinimum(config: MethodConfig, fallback: number): number {

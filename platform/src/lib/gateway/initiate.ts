@@ -62,6 +62,8 @@ export async function initiate(args: {
       return initiateAlchemyPay(input);
     case 'onramppay':
       return initiateOnRamPay(input);
+    case 'op_cashapp':
+      return initiateOnRamPay(input, 'cashapp');
     case 'op_binance':
       return initiateOnRamPay(input, 'binance');
     case 'op_revolut':
