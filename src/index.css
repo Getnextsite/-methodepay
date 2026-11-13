@@ -2,11 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    color-scheme: dark;
-  }
+/* ------------------------------------------------------------------ themes
+   Space-separated RGB so Tailwind can apply its own alpha. The dark theme is
+   the default; `data-theme` on <html> is set before first paint by the inline
+   script in index.html (saved choice, else the system preference). */
 
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: 7 10 12;
+  --bg-800: 11 15 17;
+  --bg-700: 15 20 23;
+  --bg-600: 20 27 30;
+  --fg: 255 255 255;
+  --card: 255 255 255;
+  --card-a: 0.035;
+  --solid: 14 19 22;
+
+  --z100: 240 244 242;
+  --z200: 222 229 226;
+  --z300: 200 209 205;
+  --z400: 154 166 161;
+  --z500: 134 146 141;
+  --z600: 100 111 106;
+
+  /* Brand: emerald into cyan. */
+  --p300: 150 245 215;
+  --p400: 62 230 181;
+  --p: 18 214 160;
+  --p600: 10 170 126;
+  --s: 34 184 240;
+  --s600: 14 143 208;
+  --on-accent: 3 19 13;
+
+  --success: 80 227 122;
+  --amber: 252 211 77;
+
+  --shadow-card: 0 1px 0 0 rgb(255 255 255 / 0.04) inset, 0 20px 50px -20px rgb(0 0 0 / 0.8);
+  --shadow-lift: 0 30px 70px -25px rgb(0 0 0 / 0.9), 0 0 0 1px rgb(255 255 255 / 0.08);
+  --glow-opacity: 0.5;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: 250 250 246;
+  --bg-800: 244 245 240;
+  --bg-700: 237 240 234;
+  --bg-600: 228 232 225;
+  --fg: 12 20 17;
+  --card: 255 255 255;
+  --card-a: 0.82;
+  --solid: 255 255 255;
+
+  --z100: 19 26 23;
+  --z200: 31 41 37;
+  --z300: 51 64 59;
+  --z400: 79 93 87;
+  --z500: 98 111 105;
+  --z600: 138 149 143;
+
+  --p300: 6 95 70;
+  --p400: 6 122 92;
+  --p: 10 165 124;
+  --p600: 8 140 105;
+  --s: 14 143 208;
+  --s600: 10 110 170;
+  --on-accent: 3 19 13;
+
+  --success: 6 110 45;
+  --amber: 161 98 7;
+
+  --shadow-card: 0 1px 2px rgb(12 20 17 / 0.05), 0 18px 40px -22px rgb(12 20 17 / 0.22);
+  --shadow-lift: 0 2px 4px rgb(12 20 17 / 0.05), 0 30px 60px -24px rgb(12 20 17 / 0.3);
+  --glow-opacity: 0.32;
+}
+
+@layer base {
   html {
     -webkit-text-size-adjust: 100%;
   }
@@ -14,6 +87,7 @@
   body {
     @apply bg-ink text-zinc-100 font-sans antialiased;
     text-rendering: optimizeLegibility;
+    transition: background-color 0.35s ease, color 0.35s ease;
   }
 
   /* Visible, consistent focus ring for keyboard users across the whole site. */
@@ -26,7 +100,7 @@
   h2,
   h3,
   h4 {
-    @apply tracking-tighter;
+    @apply font-display tracking-tighter;
     text-wrap: balance;
   }
 
@@ -35,7 +109,7 @@
   }
 
   ::selection {
-    background: rgba(124, 92, 255, 0.35);
+    background: rgb(var(--p) / 0.3);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -55,38 +129,56 @@
     @apply mx-auto w-full max-w-6xl px-5 sm:px-6 lg:px-8;
   }
 
-  /* Glassmorphic surface used by every card on the site. */
+  /* The card surface: frosted on dark, near-white with a soft shadow on light. */
   .glass {
-    @apply rounded-2xl border border-white/[0.08] bg-white/[0.03] shadow-card backdrop-blur-xl;
+    @apply rounded-2xl border border-white/[0.08] shadow-card backdrop-blur-xl;
+    background-color: rgb(var(--card) / var(--card-a));
   }
 
   .glass-hover {
-    @apply transition duration-300 hover:-translate-y-1 hover:border-white/[0.14] hover:bg-white/[0.05] hover:shadow-lift;
+    @apply transition duration-300 hover:-translate-y-1 hover:border-white/[0.16] hover:shadow-lift;
   }
 
   .btn {
-    @apply inline-flex select-none items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold tracking-tight transition duration-200;
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold tracking-tight transition duration-200;
   }
 
+  /* Dark label on a bright fill: holds well above 4.5:1 across the gradient. */
   .btn-primary {
-    @apply btn text-white shadow-[0_10px_40px_-12px_rgba(124,92,255,0.9)];
-    /* Stops stay dark enough that white label text holds 4.5:1 at every
-       point of the animation. */
-    background-image: linear-gradient(100deg, #6f4ffb, #4f46e5, #5b46f0, #6f4ffb);
+    @apply btn relative overflow-hidden text-onaccent;
+    background-image: linear-gradient(
+      100deg,
+      rgb(var(--p)),
+      rgb(var(--s)),
+      rgb(var(--p400)),
+      rgb(var(--p))
+    );
     background-size: 300% 100%;
     animation: gradient-pan 6s ease infinite;
+    box-shadow: 0 10px 36px -12px rgb(var(--p) / 0.75);
+  }
+
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: 40%;
+    background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.35), transparent);
+    animation: shimmer 3.2s ease-in-out infinite;
+    pointer-events: none;
   }
 
   .btn-primary:hover {
-    @apply -translate-y-0.5 shadow-[0_16px_50px_-12px_rgba(124,92,255,1)];
+    @apply -translate-y-0.5;
+    box-shadow: 0 16px 46px -12px rgb(var(--p) / 0.95);
   }
 
   .btn-secondary {
-    @apply btn border border-white/15 bg-white/[0.04] text-zinc-100 hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.08];
+    @apply btn border border-white/15 bg-white/[0.04] text-zinc-100 hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/[0.08];
   }
 
   .eyebrow {
-    @apply inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium tracking-tight text-zinc-300;
+    @apply inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold tracking-tight text-zinc-300;
   }
 
   .lead {
@@ -100,20 +192,43 @@
   .hairline {
     @apply h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent;
   }
+
+  /* A brand-gradient fill for small marks and badges. */
+  .brand-fill {
+    @apply text-onaccent;
+    background-image: linear-gradient(135deg, rgb(var(--p)), rgb(var(--s)));
+  }
+
+  /* Hairline gradient border that slowly rotates; used on feature frames. */
+  .ring-gradient {
+    position: relative;
+  }
+  .ring-gradient::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(140deg, rgb(var(--p) / 0.7), transparent 35%, transparent 65%, rgb(var(--s) / 0.7));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
 }
 
-/* Radial glows behind sections — purely decorative, kept out of the a11y tree. */
+/* Radial glows behind sections: purely decorative, kept out of the a11y tree. */
 .glow {
   position: absolute;
   pointer-events: none;
   border-radius: 9999px;
   filter: blur(90px);
-  opacity: 0.5;
+  opacity: var(--glow-opacity);
 }
 
 .grid-lines {
-  background-image: linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-image: linear-gradient(rgb(var(--fg) / 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--fg) / 0.04) 1px, transparent 1px);
   background-size: 64px 64px;
   mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
@@ -122,4 +237,41 @@
 .marquee-mask {
   mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+
+/* Fades the bottom of the hero showcase into the page. */
+.stage-fade {
+  mask-image: linear-gradient(180deg, #000 72%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 72%, transparent 100%);
+}
+
+/* Cursor-following highlight on cards; --mx/--my are set by Spotlight.jsx. */
+.spotlight {
+  position: relative;
+}
+.spotlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    320px circle at var(--mx, 50%) var(--my, 0%),
+    rgb(var(--p) / 0.13),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.spotlight:hover::after {
+  opacity: 1;
+}
+
+/* Cards layered over other UI (the hero overlays) must not be see-through. */
+.solid-cards .glass {
+  background-color: rgb(var(--solid));
+  backdrop-filter: none;
+}
+.solid-chip.glass {
+  background-color: rgb(var(--solid));
 }

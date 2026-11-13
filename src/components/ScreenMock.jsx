@@ -51,7 +51,7 @@ function PaymentsScreen() {
               aria-hidden="true"
             >
               <span
-                className={`absolute top-0.5 h-4 w-4 rounded-full bg-white ${
+                className={`absolute top-0.5 h-4 w-4 rounded-full bg-pure ${
                   r.on ? 'left-[18px]' : 'left-0.5'
                 }`}
               />

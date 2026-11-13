@@ -50,7 +50,7 @@ const allIds = nav.flatMap((g) => g.items.map((i) => i.id))
 
 function Code({ children }) {
   return (
-    <pre className="mt-3 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/40 p-4 text-[12.5px] leading-relaxed text-zinc-300">
+    <pre className="mt-3 overflow-x-auto rounded-xl border border-white/[0.08] bg-white/[0.05] p-4 text-[12.5px] leading-relaxed text-zinc-300">
       <code className="font-mono">{children}</code>
     </pre>
   )

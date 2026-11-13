@@ -4,7 +4,9 @@ import useSeo, { faqSchema, productSchema } from '../lib/useSeo.js'
 import Reveal from '../components/Reveal.jsx'
 import Glow from '../components/Glow.jsx'
 import SectionHeading from '../components/SectionHeading.jsx'
-import CheckoutMockup from '../components/CheckoutMockup.jsx'
+import HeroShowcase from '../components/HeroShowcase.jsx'
+import StatsBand from '../components/StatsBand.jsx'
+import DesignGallery from '../components/DesignGallery.jsx'
 import PaymentWall from '../components/PaymentWall.jsx'
 import LiveEditorDemo from '../components/LiveEditorDemo.jsx'
 import Faq from '../components/Faq.jsx'
@@ -17,7 +19,6 @@ import {
   plans,
   steps,
   testimonials,
-  checkoutDesigns,
 } from '../data/site.js'
 
 // Module scope keeps the object identity stable across renders.
@@ -38,6 +39,14 @@ const pains = [
   },
 ]
 
+/** Feeds the cursor position to the .spotlight highlight on a card. */
+function trackSpotlight(event) {
+  const el = event.currentTarget
+  const rect = el.getBoundingClientRect()
+  el.style.setProperty('--mx', `${event.clientX - rect.left}px`)
+  el.style.setProperty('--my', `${event.clientY - rect.top}px`)
+}
+
 export default function Home() {
   const [billing, setBilling] = useState('yearly')
 
@@ -54,86 +63,100 @@ export default function Home() {
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
         <div aria-hidden="true" className="absolute inset-0 grid-lines" />
-        <Glow className="-top-40 left-1/4 -translate-x-1/2" size={640} />
-        <Glow
-          className="-top-20 right-0"
-          size={520}
-          color="rgba(79,70,229,0.28)"
-        />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[1000px] overflow-hidden [mask-image:linear-gradient(#000_55%,transparent)]">
+          <Glow
+            className="-top-52 left-[12%] animate-aurora motion-reduce:animate-none"
+            size={680}
+            color="rgb(var(--p)/0.4)"
+          />
+          <Glow
+            className="-top-40 right-[6%] animate-aurora motion-reduce:animate-none [animation-delay:-6s]"
+            size={600}
+            color="rgb(var(--s)/0.34)"
+          />
+          <Glow
+            className="left-1/2 top-[420px] -translate-x-1/2 animate-aurora motion-reduce:animate-none [animation-delay:-11s]"
+            size={760}
+            color="rgb(var(--p)/0.16)"
+          />
+        </div>
 
-        <div className="container-page relative pb-32 pt-16 sm:pb-24 sm:pt-24">
-          <div className="grid items-center gap-14 lg:grid-cols-[1.12fr_1fr] lg:gap-10">
-            <div>
-              <Reveal>
-                <p className="eyebrow">
-                  <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" />
-                  Standalone WordPress plugin · no WooCommerce
-                </p>
-              </Reveal>
+        <div className="container-page relative pt-14 sm:pt-20">
+          <div className="mx-auto max-w-4xl text-center">
+            <Reveal>
+              <p className="eyebrow">
+                <span className="relative flex h-2 w-2" aria-hidden="true">
+                  <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-success" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+                </span>
+                17 payment methods · no WooCommerce
+              </p>
+            </Reveal>
 
-              <Reveal delay={70}>
-                <h1 className="mt-5 text-[2.6rem] font-extrabold leading-[1.03] tracking-tightest text-white [text-wrap:initial] sm:text-6xl">
-                  Accept payments anywhere.
-                  <span className="block gradient-text">No WooCommerce.</span>
-                  <span className="block gradient-text">No rejections.</span>
-                </h1>
-              </Reveal>
+            <Reveal delay={70}>
+              <h1 className="mt-6 text-[2.7rem] font-extrabold leading-[1.02] tracking-tightest text-white sm:text-6xl lg:text-7xl">
+                Accept payments anywhere.
+                <span className="block gradient-text">No WooCommerce. No rejections.</span>
+              </h1>
+            </Reveal>
 
-              <Reveal delay={140}>
-                <p className="lead mt-6 max-w-xl">
-                  Rejected by Stripe? Customers without cards? Take the payment anyway.
-                  MethodePay puts nine payment rails, six checkout designs and automatic
-                  delivery inside WordPress — without the cart software you never wanted.
-                </p>
-              </Reveal>
+            <Reveal delay={140}>
+              <p className="lead mx-auto mt-6 max-w-2xl">
+                Rejected by Stripe? Customers without cards? Take the payment anyway. One
+                dashboard, six checkout designs, and every rail your buyers already use, with
+                delivery on autopilot.
+              </p>
+            </Reveal>
 
-              <Reveal delay={210}>
-                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <Link to="/pricing" className="btn-primary">
-                    Get MethodePay
-                    <Icons.ArrowRight width={16} height={16} />
-                  </Link>
-                  <a href="#demo" className="btn-secondary">
-                    See live demo
-                  </a>
-                </div>
-              </Reveal>
-
-              <Reveal delay={280}>
-                <ul className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-zinc-400">
-                  {[
-                    'No transaction fees, ever',
-                    '14-day money-back guarantee',
-                    'Works with any theme',
-                  ].map((t) => (
-                    <li key={t} className="flex items-center gap-2">
-                      <Icons.Check width={15} height={15} className="text-success" />
-                      {t}
-                    </li>
-                  ))}
-                </ul>
-              </Reveal>
-            </div>
-
-            <Reveal delay={200} className="lg:pl-6">
-              <div className="animate-float motion-reduce:animate-none">
-                <CheckoutMockup />
+            <Reveal delay={210}>
+              <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+                <Link to="/pricing" className="btn-primary !px-7 !py-3.5 !text-[15px]">
+                  Get MethodePay
+                  <Icons.ArrowRight width={16} height={16} />
+                </Link>
+                <a href="#demo" className="btn-secondary !px-7 !py-3.5 !text-[15px]">
+                  See live demo
+                </a>
               </div>
             </Reveal>
+
+            <Reveal delay={280}>
+              <ul className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs font-medium text-zinc-400">
+                {[
+                  'No transaction fees, ever',
+                  '14-day money-back guarantee',
+                  'Live in an afternoon',
+                ].map((t) => (
+                  <li key={t} className="flex items-center gap-2">
+                    <Icons.Check width={15} height={15} className="text-success" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </Reveal>
+          </div>
+
+          <div className="mt-14 pb-10 sm:mt-20 lg:pb-28">
+            <HeroShowcase />
           </div>
         </div>
       </section>
 
       {/* ── Payment method wall ──────────────────────────────── */}
-      <section className="border-y border-white/[0.06] bg-white/[0.015] py-10">
-        <div className="container-page">
-          <Reveal>
-            <p className="mb-6 text-center text-xs font-semibold uppercase tracking-widest text-zinc-500">
-              Nine ways to get paid — switch on the ones that work where you sell
-            </p>
-          </Reveal>
-          <PaymentWall />
-        </div>
+      <section className="border-y border-white/[0.06] bg-white/[0.015] py-12">
+        <Reveal>
+          <p className="mb-7 px-5 text-center text-xs font-bold uppercase tracking-widest text-zinc-500">
+            Every way your customers already pay
+          </p>
+        </Reveal>
+        <PaymentWall />
+      </section>
+
+      {/* ── Numbers ──────────────────────────────────────────── */}
+      <section className="container-page pt-16 sm:pt-20">
+        <Reveal>
+          <StatsBand />
+        </Reveal>
       </section>
 
       {/* ── Pain ─────────────────────────────────────────────── */}
@@ -158,7 +181,7 @@ export default function Home() {
 
       {/* ── Feature grid ─────────────────────────────────────── */}
       <section className="relative overflow-hidden">
-        <Glow className="left-1/2 top-0 -translate-x-1/2" size={700} color="rgba(124,92,255,0.16)" />
+        <Glow className="left-1/2 top-0 -translate-x-1/2" size={700} color="rgb(var(--p)/0.16)" />
         <div className="container-page relative py-20 sm:py-24">
           <SectionHeading
             eyebrow="What you get"
@@ -171,7 +194,7 @@ export default function Home() {
               const Icon = Icons[f.icon]
               return (
                 <Reveal key={f.title} delay={(i % 3) * 80}>
-                  <article className="glass glass-hover h-full p-6">
+                  <article className="glass glass-hover spotlight h-full p-6" onMouseMove={trackSpotlight}>
                     <span className="grid h-11 w-11 place-items-center rounded-xl border border-violet-500/25 bg-violet-500/10 text-violet-400">
                       <Icon />
                     </span>
@@ -197,6 +220,18 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Checkout designs ─────────────────────────────────── */}
+      <section className="container-page pb-20 sm:pb-28">
+        <SectionHeading
+          eyebrow="Checkout designs"
+          title="Six checkouts. Pick the one that sells."
+          sub="Each design is built for a different job. Switch between them in one click and keep every setting."
+        />
+        <Reveal delay={100} className="mt-12">
+          <DesignGallery />
+        </Reveal>
+      </section>
+
       {/* ── How it works ─────────────────────────────────────── */}
       <section className="border-y border-white/[0.06] bg-white/[0.015]">
         <div className="container-page py-20 sm:py-24">
@@ -216,7 +251,7 @@ export default function Home() {
                   >
                     {s.n}
                   </span>
-                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-[#6f4ffb] to-indigo-500 text-sm font-bold text-white">
+                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 text-sm font-bold text-onaccent">
                     {i + 1}
                   </span>
                   <h3 className="mt-4 text-base font-bold tracking-tight text-white">
@@ -243,29 +278,6 @@ export default function Home() {
             <LiveEditorDemo />
           </Reveal>
 
-          <Reveal delay={140} className="mt-8">
-            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {checkoutDesigns.map((d) => (
-                <li
-                  key={d.name}
-                  className="flex items-start gap-3 rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-3"
-                >
-                  <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-violet-500/10 text-violet-400">
-                    <Icons.Layers width={15} height={15} />
-                  </span>
-                  <span>
-                    <span className="block text-sm font-semibold text-white">
-                      {d.name}{' '}
-                      <span className="font-normal text-zinc-500">· {d.tag}</span>
-                    </span>
-                    <span className="mt-0.5 block text-xs leading-snug text-zinc-400">
-                      {d.blurb}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Reveal>
         </div>
       </section>
 
@@ -304,7 +316,7 @@ export default function Home() {
 
       {/* ── Pricing preview ──────────────────────────────────── */}
       <section className="relative overflow-hidden">
-        <Glow className="left-1/2 top-10 -translate-x-1/2" size={640} color="rgba(124,92,255,0.16)" />
+        <Glow className="left-1/2 top-10 -translate-x-1/2" size={640} color="rgb(var(--p)/0.16)" />
         <div className="container-page relative py-20 sm:py-24">
           <SectionHeading
             eyebrow="Pricing"

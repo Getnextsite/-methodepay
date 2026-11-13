@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import Logo from './Logo.jsx'
+import ThemeToggle from './ThemeToggle.jsx'
 import { signInUrl, signUpUrl } from '../lib/appUrl.js'
 
 const links = [
@@ -66,6 +67,7 @@ export default function Nav() {
 
         {/* The app is a separate deployment, so these are real URLs. */}
         <div className="hidden items-center gap-2.5 md:flex">
+          <ThemeToggle />
           <a href={signInUrl} className="btn-secondary !px-4 !py-2.5">
             Sign in
           </a>
@@ -74,6 +76,7 @@ export default function Nav() {
           </a>
         </div>
 
+        <ThemeToggle className="ml-auto mr-2 md:hidden" />
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}

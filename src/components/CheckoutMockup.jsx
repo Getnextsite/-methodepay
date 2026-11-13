@@ -48,7 +48,7 @@ export default function CheckoutMockup() {
         {/* checkout header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 text-xs font-bold text-white">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 text-xs font-bold text-onaccent">
               M
             </span>
             <div>
@@ -98,7 +98,7 @@ export default function CheckoutMockup() {
                     on ? 'border-violet-400 bg-violet-500' : 'border-white/20'
                   }`}
                 >
-                  {on && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                  {on && <span className="h-1.5 w-1.5 rounded-full bg-onaccent" />}
                 </span>
               </li>
             )
@@ -109,7 +109,7 @@ export default function CheckoutMockup() {
           type="button"
           tabIndex={-1}
           aria-hidden="true"
-          className={`btn mt-4 w-full text-white transition-all duration-500 ${
+          className={`btn mt-4 w-full text-onaccent transition-all duration-500 ${
             paid ? 'bg-success/90' : 'bg-gradient-to-r from-violet-500 to-indigo-500'
           }`}
         >

@@ -59,7 +59,7 @@ export function PlanCard({ plan, billing, compact = false, delay = 0 }) {
         }`}
       >
         {plan.popular && (
-          <span className="absolute -top-3 left-6 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#6f4ffb] to-indigo-500 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-[0_8px_24px_-8px_rgba(124,92,255,0.9)]">
+          <span className="absolute -top-3 left-6 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-onaccent shadow-[0_8px_24px_-8px_rgb(var(--p)/0.9)]">
             <Star width={12} height={12} />
             Most popular
           </span>

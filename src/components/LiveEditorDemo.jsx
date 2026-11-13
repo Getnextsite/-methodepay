@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Check, Shield } from './Icons.jsx'
 
 const accents = [
+  { name: 'Emerald', value: '#12d6a0' },
   { name: 'Violet', value: '#7c5cff' },
-  { name: 'Emerald', value: '#00d632' },
   { name: 'Amber', value: '#f7931a' },
   { name: 'Sky', value: '#3b9dff' },
   { name: 'Rose', value: '#ff5d8f' },
@@ -176,7 +176,7 @@ export default function LiveEditorDemo() {
             >
               <span className="sr-only">Show logo</span>
               <span
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-pure transition-all ${
                   logo ? 'left-[22px]' : 'left-0.5'
                 }`}
               />
@@ -186,8 +186,8 @@ export default function LiveEditorDemo() {
       </div>
 
       {/* preview */}
-      <div className="relative grid place-items-center bg-[radial-gradient(ellipse_at_top,rgba(124,92,255,0.12),transparent_60%)] p-6 sm:p-10">
-        <span className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
+      <div className="relative grid place-items-center bg-[radial-gradient(ellipse_at_top,rgb(var(--p)/0.12),transparent_60%)] p-6 sm:p-10">
+        <span className="absolute left-4 top-4 rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
           Live preview
         </span>
 
@@ -200,7 +200,7 @@ export default function LiveEditorDemo() {
             <div className="mb-4 flex items-center gap-2">
               <span
                 aria-hidden="true"
-                className="grid h-7 w-7 place-items-center text-[11px] font-bold text-white"
+                className="grid h-7 w-7 place-items-center text-[11px] font-bold text-onaccent"
                 style={{ background: accent, borderRadius: Math.max(4, radius - 6) }}
               >
                 M
@@ -247,7 +247,7 @@ export default function LiveEditorDemo() {
             type="button"
             tabIndex={-1}
             aria-hidden="true"
-            className="mt-4 w-full px-4 py-2.5 text-[13px] font-bold text-white transition"
+            className="mt-4 w-full px-4 py-2.5 text-[13px] font-bold text-onaccent transition"
             style={{ background: accent, borderRadius: Math.max(4, radius - 4) }}
           >
             Pay $89.00

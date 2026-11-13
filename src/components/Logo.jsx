@@ -6,12 +6,12 @@ export default function Logo({ className = '' }) {
         height="30"
         viewBox="0 0 64 64"
         aria-hidden="true"
-        className="shrink-0 drop-shadow-[0_4px_14px_rgba(124,92,255,0.5)]"
+        className="shrink-0 drop-shadow-[0_4px_14px_rgb(var(--p)/0.5)]"
       >
         <defs>
           <linearGradient id="mp-logo" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#9b85ff" />
-            <stop offset="100%" stopColor="#4f46e5" />
+            <stop offset="0%" style={{ stopColor: "rgb(var(--p400))" }} />
+            <stop offset="100%" style={{ stopColor: "rgb(var(--s))" }} />
           </linearGradient>
         </defs>
         <rect width="64" height="64" rx="16" fill="url(#mp-logo)" fillOpacity="0.14" />
