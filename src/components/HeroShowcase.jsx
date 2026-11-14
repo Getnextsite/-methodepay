@@ -1,65 +1,48 @@
 import BrandIcon from './BrandIcon.jsx'
-import CheckoutMockup from './CheckoutMockup.jsx'
-import DashboardMockup from './DashboardMockup.jsx'
-import { Check, Shield } from './Icons.jsx'
+import { Check } from './Icons.jsx'
 
-const tiles = [
-  { rail: 'op_binance', label: 'Binance Pay' },
-  { rail: 'op_revolut', label: 'Revolut' },
-  { rail: 'op_upi', label: 'UPI' },
-  { rail: 'op_cashapp', label: 'Cash App' },
-]
+/**
+ * Real captures of the product, taken from the app running a demo store
+ * (Atlas Digital, sample orders). Regenerate them when the UI changes.
+ */
+const shots = {
+  dashboard: {
+    src: '/shots/dashboard-overview.webp',
+    alt: 'The MethodePay dashboard: paid revenue, orders awaiting verification, recent orders and checkout links.',
+    width: 2880,
+    height: 1800,
+  },
+  checkout: {
+    src: '/shots/checkout-card.webp',
+    alt: 'A hosted checkout page: order summary, buyer details and payment methods.',
+    width: 1120,
+    height: 1520,
+  },
+  phone: {
+    src: '/shots/checkout-mobile.webp',
+    alt: 'The Express checkout design on a phone, with one-tap payment method tiles.',
+    width: 1170,
+    height: 2532,
+  },
+}
 
-/** The Express design on a phone: rails first, one tap to pay. */
-function PhoneCheckout() {
+/** Browser-style frame around a capture. */
+function Frame({ url, children, className = '' }) {
   return (
-    <div
-      role="img"
-      aria-label="The Express checkout design on a phone, with one-tap buttons for Binance Pay, Revolut, UPI and Cash App."
-      className="w-[212px] rounded-[34px] border border-white/[0.14] bg-ink-800 p-2 shadow-lift"
-    >
-      <div aria-hidden="true" className="overflow-hidden rounded-[27px] border border-white/[0.07] bg-ink">
-        <div className="flex justify-center pt-2">
-          <span className="h-1.5 w-14 rounded-full bg-white/15" />
-        </div>
-        <div className="p-3.5">
-          <div className="flex items-center gap-2">
-            <span className="grid h-7 w-7 place-items-center rounded-lg text-[11px] font-extrabold brand-fill">
-              M
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-[11.5px] font-bold text-white">Starter Pack</p>
-              <p className="text-[9.5px] text-zinc-500">Express checkout</p>
-            </div>
-            <p className="ml-auto font-display text-[15px] font-bold text-white">$39</p>
-          </div>
-
-          <p className="mt-3.5 text-[9px] font-bold uppercase tracking-widest text-zinc-500">
-            Pay in one tap
-          </p>
-          <ul className="mt-2 grid grid-cols-2 gap-1.5">
-            {tiles.map((t, i) => (
-              <li
-                key={t.rail}
-                className={`flex flex-col items-center gap-1.5 rounded-xl border px-1 py-2.5 ${
-                  i === 0 ? 'border-violet-500/60 bg-violet-500/[0.1]' : 'border-white/[0.08] bg-white/[0.03]'
-                }`}
-              >
-                <BrandIcon rail={t.rail} size={24} />
-                <span className="text-[9.5px] font-semibold text-zinc-200">{t.label}</span>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-2.5 rounded-xl px-3 py-2.5 text-center text-[11px] font-extrabold brand-fill">
-            Pay $39.00
-          </div>
-          <p className="mt-2 flex items-center justify-center gap-1 text-[9px] text-zinc-500">
-            <Shield width={11} height={11} className="text-success" />
-            14-day money-back guarantee
-          </p>
-        </div>
+    <div className={`overflow-hidden rounded-2xl border border-white/[0.12] bg-[#0b0f14] shadow-lift ${className}`}>
+      <div className="flex items-center gap-3 border-b border-pure/10 bg-pure/[0.04] px-4 py-2.5" aria-hidden="true">
+        <span className="flex gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+        </span>
+        <span className="mx-auto flex min-w-0 max-w-[300px] flex-1 items-center gap-2 rounded-lg border border-pure/10 bg-pure/[0.04] px-3 py-1 font-mono text-[10.5px] text-[#9aa6a1]">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-success" />
+          <span className="truncate">{url}</span>
+        </span>
+        <span className="w-10" />
       </div>
+      {children}
     </div>
   )
 }
@@ -78,46 +61,39 @@ function Chip({ children, className = '', style }) {
 }
 
 /**
- * Hero stage: the dashboard in the middle, a desktop checkout and a phone
- * checkout layered in front of it. Below `lg` the overlays would crowd the
- * dashboard, so the checkout drops underneath instead.
+ * Hero stage: the real dashboard in the middle, with a real desktop checkout
+ * and a real phone checkout layered in front of it. Below `lg` the overlays
+ * would crowd the dashboard, so the checkout drops underneath instead.
  */
 export default function HeroShowcase() {
   return (
     <div className="relative mx-auto max-w-5xl">
       <div className="animate-stage-in motion-reduce:animate-none">
         <div className="relative lg:px-16">
-          <div className="glass ring-gradient overflow-hidden">
-            <img
-              src="/shots/dashboard-overview.webp"
-              alt="The MethodePay dashboard: paid revenue, orders awaiting verification, recent orders and checkout links."
-              width={2880}
-              height={1800}
-              className="block h-auto w-full"
-            />
-          </div>
+          <Frame url="app.methodepay.com/dashboard" className="ring-gradient">
+            <img {...shots.dashboard} className="block h-auto w-full" fetchPriority="high" />
+          </Frame>
 
           {/* desktop checkout, front left */}
           <div
-            className="solid-cards absolute -bottom-10 -left-6 z-10 hidden w-[310px] animate-float-slow motion-reduce:animate-none lg:block xl:-left-14"
+            className="absolute -bottom-12 -left-6 z-10 hidden w-[290px] animate-float-slow motion-reduce:animate-none lg:block xl:-left-14"
             style={{ '--tilt': '-2deg' }}
           >
-            <CheckoutMockup />
+            <div className="overflow-hidden rounded-2xl border border-white/[0.14] shadow-lift">
+              <img {...shots.checkout} loading="lazy" className="block h-auto w-full" />
+            </div>
           </div>
 
           {/* phone checkout, front right */}
           <div
-            className="absolute -bottom-12 -right-4 z-10 hidden animate-float-slow motion-reduce:animate-none [animation-delay:-3s] lg:block xl:-right-12"
+            className="absolute -bottom-14 -right-4 z-10 hidden animate-float-slow motion-reduce:animate-none [animation-delay:-3s] lg:block xl:-right-12"
             style={{ '--tilt': '3deg' }}
           >
-            <div className="w-[212px] overflow-hidden rounded-[34px] border border-white/[0.14] bg-ink-800 p-2 shadow-lift">
+            <div className="w-[206px] overflow-hidden rounded-[34px] border border-white/[0.16] bg-[#0b0f14] p-2 shadow-lift">
               <img
-                src="/shots/checkout-mobile.webp"
-                alt="The Express checkout design on a phone."
-                width={1170}
-                height={2532}
+                {...shots.phone}
                 loading="lazy"
-                className="block h-[420px] w-full rounded-[27px] object-cover object-top"
+                className="block h-[410px] w-full rounded-[27px] object-cover object-top"
               />
             </div>
           </div>
@@ -136,8 +112,10 @@ export default function HeroShowcase() {
       </div>
 
       {/* small screens: the checkout sits under the dashboard */}
-      <div className="mx-auto mt-10 max-w-sm pb-16 lg:hidden">
-        <CheckoutMockup />
+      <div className="mx-auto mt-8 max-w-xs lg:hidden">
+        <div className="overflow-hidden rounded-2xl border border-white/[0.14] shadow-lift">
+          <img {...shots.checkout} loading="lazy" className="block h-auto w-full" />
+        </div>
       </div>
     </div>
   )
