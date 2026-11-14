@@ -8,6 +8,7 @@ import { emailConfigured } from '@/lib/env';
 import { entitlementsFor } from '@/lib/entitlements';
 import { sendTelegram } from '@/lib/notifier';
 import { loadMerchantContext } from '@/lib/gateway/context';
+import { parseConfirmChannels } from '@/lib/confirm-channels';
 import { Banner, Field, PageHeader, Section } from '@/components/ui';
 import { ActionForm, SubmitButton, type ActionState } from '@/components/action-form';
 
@@ -55,6 +56,12 @@ async function saveNotificationsAction(
             ? existing.telegramBotTokenEnc
             : encryptSecret(submittedToken),
         telegramChatId: String(formData.get('telegramChatId') ?? '').trim() || null,
+        confirmChannels: {
+          txid: formData.get('confirmTxid') === 'on',
+          whatsapp: formData.get('confirmViaWhatsapp') === 'on',
+          email: formData.get('confirmViaEmail') === 'on',
+          emailTo: String(formData.get('confirmEmail') ?? '').trim().toLowerCase().slice(0, 190),
+        },
         confirmWhatsapp: String(formData.get('confirmWhatsapp') ?? '').trim() || null,
         confirmTelegram: String(formData.get('confirmTelegram') ?? '').trim() || null,
         confirmMessage: String(formData.get('confirmMessage') ?? '').trim() || null,
@@ -113,6 +120,7 @@ export default async function NotificationsPage() {
   });
 
   const storedToken = decryptSecret(settings.telegramBotTokenEnc);
+  const channels = parseConfirmChannels(settings.confirmChannels);
 
   return (
     <>
@@ -234,10 +242,52 @@ export default async function NotificationsPage() {
           </Section>
 
           <Section
-            title="How buyers reach you after paying"
-            description="Shown on the payment screen for manual rails, prefilled with the order reference."
+            title="How buyers confirm a payment"
+            description="Shown on the payment screen for manual rails. Tick any combination; every option carries the order reference so you can match the message to the order."
           >
+            <div className="grid gap-2.5">
+              <label className="flex items-start gap-2.5 text-sm text-ink-100">
+                <input type="checkbox" name="confirmViaWhatsapp" defaultChecked={channels.whatsapp} className="mt-0.5" />
+                <span>
+                  WhatsApp button with QR code
+                  <span className="block text-xs text-ink-300">
+                    Opens a chat with you, prefilled with the order reference. Buyers on a computer can scan the QR to continue on their phone. Needs the WhatsApp number below.
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2.5 text-sm text-ink-100">
+                <input type="checkbox" name="confirmViaEmail" defaultChecked={channels.email} className="mt-0.5" />
+                <span>
+                  Email button
+                  <span className="block text-xs text-ink-300">
+                    Opens an email to you, prefilled with the order reference.
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2.5 text-sm text-ink-100">
+                <input type="checkbox" name="confirmTxid" defaultChecked={channels.txid} className="mt-0.5" />
+                <span>
+                  Transaction ID / TXID form
+                  <span className="block text-xs text-ink-300">
+                    The buyer pastes a transaction ID or payment reference on the page. If nothing else is available, this form is shown so the buyer is never left with no way to confirm.
+                  </span>
+                </span>
+              </label>
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label="Confirmation email address"
+                htmlFor="confirmEmail"
+                hint="Where email confirmations go. Blank uses your support email."
+              >
+                <input
+                  id="confirmEmail"
+                  name="confirmEmail"
+                  type="email"
+                  defaultValue={channels.emailTo}
+                  className="input"
+                />
+              </Field>
               <Field label="WhatsApp number" htmlFor="confirmWhatsapp" hint="Digits only, with country code.">
                 <input
                   id="confirmWhatsapp"

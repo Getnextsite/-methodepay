@@ -21,6 +21,7 @@ import {
   withinSeatLimit,
 } from '../src/lib/entitlements';
 import { readableOn, withAlpha } from '../src/lib/checkout/theme';
+import { parseConfirmChannels, resolveConfirm } from '../src/lib/confirm-channels';
 import {
   METHOD_DEFINITIONS,
   defaultConfig,
@@ -231,6 +232,39 @@ function eq<T>(name: string, actual: T, expected: T) {
   eq('promoted binance carries its tag', defaultConfig('op_binance').onrampTag, 'binance');
   eq('unknown rail has no defaults', Object.keys(defaultConfig('nope')).length, 0);
   eq('onramppay minimum is 30 USD', methodDefinition('onramppay')!.minUsd, 30);
+}
+
+// ---------------------------------------------------------------- confirmation channels
+{
+  const base = { whatsappNumber: '+212 600-000041', supportEmail: 'help@shop.test', message: 'Order MP-ABC123', subject: 'Order MP-ABC123' };
+  const on = (c: Partial<ReturnType<typeof parseConfirmChannels>>) =>
+    resolveConfirm({ ...base, channels: { txid: false, whatsapp: false, email: false, emailTo: '', ...c } });
+
+  eq('legacy array keeps the TXID form on', parseConfirmChannels(['whatsapp']).txid, true);
+  eq('legacy array reads whatsapp', parseConfirmChannels(['whatsapp']).whatsapp, true);
+  eq('legacy array leaves email off', parseConfirmChannels(['whatsapp']).email, false);
+  eq('object shape is read as stored', parseConfirmChannels({ txid: false, whatsapp: true, email: true, emailTo: ' a@b.co ' }).emailTo, 'a@b.co');
+  eq('missing value falls back to defaults', parseConfirmChannels(null).txid, true);
+
+  const all = on({ txid: true, whatsapp: true, email: true });
+  check('all three: whatsapp link uses digits only', all.whatsappUrl?.startsWith('https://wa.me/212600000041?text=') === true);
+  check('all three: whatsapp message carries the reference', decodeURIComponent(all.whatsappUrl ?? '').includes('MP-ABC123'));
+  check('all three: email falls back to the support inbox', all.emailUrl?.startsWith('mailto:help@shop.test?') === true);
+  check('all three: email body carries the reference', decodeURIComponent(all.emailUrl ?? '').includes('MP-ABC123'));
+  eq('all three: TXID form shown', all.txid, true);
+
+  const wa = on({ whatsapp: true });
+  check('whatsapp only: no email, no TXID', wa.whatsappUrl !== null && wa.emailUrl === null && wa.txid === false);
+  const mail = on({ email: true, emailTo: 'pay@shop.test' });
+  check('email only: own inbox wins over support', mail.emailUrl?.startsWith('mailto:pay@shop.test?') === true && mail.txid === false);
+  const both = on({ whatsapp: true, email: true });
+  check('whatsapp + email: no TXID form', both.whatsappUrl !== null && both.emailUrl !== null && both.txid === false);
+  const tx = on({ txid: true });
+  check('TXID only: no messaging links', tx.txid && tx.whatsappUrl === null && tx.emailUrl === null);
+
+  eq('nothing ticked still leaves a way to confirm', on({}).txid, true);
+  const noNumber = resolveConfirm({ ...base, whatsappNumber: '', channels: { txid: false, whatsapp: true, email: false, emailTo: '' } });
+  check('whatsapp ticked without a number falls back to TXID', noNumber.whatsappUrl === null && noNumber.txid === true);
 }
 
 // ---------------------------------------------------------------- report

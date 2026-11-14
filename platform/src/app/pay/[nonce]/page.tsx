@@ -12,6 +12,7 @@ import { CheckoutShell, Card, MerchantHeader, PolicyFooter } from '@/components/
 import { CopyField } from '@/components/checkout/copy-field';
 import { ConfirmPayment } from '@/components/checkout/confirm';
 import { env } from '@/lib/env';
+import { parseConfirmChannels, resolveConfirm } from '@/lib/confirm-channels';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Complete your payment', robots: { index: false } };
@@ -46,14 +47,19 @@ export default async function PayPage({ params }: { params: { nonce: string } })
     order,
     order.product,
   );
-  const contact =
-    ctx.notifications.confirmWhatsapp || ctx.notifications.confirmTelegram
-      ? {
-          whatsapp: ctx.notifications.confirmWhatsapp,
-          telegram: ctx.notifications.confirmTelegram,
-          message: confirmMessage,
-        }
-      : null;
+  // Which confirmation routes this merchant offers, each carrying the order
+  // reference so the seller can match the message to the order.
+  const confirm = resolveConfirm({
+    channels: parseConfirmChannels(ctx.notifications.confirmChannels),
+    whatsappNumber: ctx.notifications.confirmWhatsapp,
+    supportEmail: ctx.notifications.supportEmail,
+    message: confirmMessage,
+    subject: `Payment confirmation — order ${order.ref}`,
+  });
+  const confirmQr = confirm.whatsappUrl ? await qrDataUrl(confirm.whatsappUrl) : null;
+  const telegramUrl = ctx.notifications.confirmTelegram
+    ? `https://t.me/${ctx.notifications.confirmTelegram.replace(/^@/, '')}`
+    : null;
 
   return (
     <CheckoutShell profile={ctx.profile}>
@@ -90,9 +96,18 @@ export default async function PayPage({ params }: { params: { nonce: string } })
 
         <ConfirmPayment
           nonce={order.nonce}
-          requireReference={manual ? manual.requireReference : requiresReference(methodKey)}
-          referenceLabel={referenceLabel(methodKey)}
-          contact={contact}
+          orderRef={order.ref}
+          txid={
+            confirm.txid
+              ? {
+                  required: manual ? manual.requireReference : requiresReference(methodKey),
+                  label: referenceLabel(methodKey),
+                }
+              : null
+          }
+          whatsapp={confirm.whatsappUrl ? { url: confirm.whatsappUrl, qr: confirmQr } : null}
+          email={confirm.emailUrl ? { url: confirm.emailUrl } : null}
+          telegramUrl={telegramUrl}
         />
       </Card>
 
@@ -208,24 +223,38 @@ async function Instructions(props: InstructionProps) {
 
     case 'bc_paypal':
     case 'bc_cashapp': {
+      // Guided "buy crypto in your app, send it to us" flow, as in the plugin:
+      // the buyer never needs a card we accept, only PayPal or Cash App.
+      const app = methodKey === 'bc_paypal' ? 'PayPal' : 'Cash App';
       const coin = String(config.coin ?? 'BTC');
+      const network = String(config.network ?? 'Bitcoin');
       const address = String(config.wallet ?? '');
+      const amount = `${fromCents(order.amountCents, order.currency)} ${order.currency}`;
       const qr = await qrDataUrl(address);
       return (
         <>
+          <div className="mp-panel mp-panel--primary" style={{ marginBottom: 14 }}>
+            <p className="mp-fine" style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
+              Amount to send
+            </p>
+            <p style={{ margin: '4px 0 0', fontSize: 19, fontWeight: 700 }}>
+              {amount}{' '}
+              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--mp-text-muted)' }}>
+                worth of {coin}
+              </span>
+            </p>
+          </div>
           <Steps
             steps={[
-              methodKey === 'bc_paypal'
-                ? `Open PayPal and buy ${fromCents(order.amountCents, order.currency)} of ${coin}.`
-                : `Open Cash App and buy ${fromCents(order.amountCents, order.currency)} of ${coin}.`,
-              `Withdraw it to the ${coin} address below.`,
-              'Come back and paste the transaction ID.',
+              `Buy ${coin} in ${app}: open ${app} and buy about ${amount} worth of ${coin}. Add a little extra for the network fee.`,
+              `Send it to our wallet: choose Send / Withdraw in ${app}, select the ${network} network, then scan the QR or paste the address below.`,
+              'Confirm below so we can verify the payment and activate your order.',
             ]}
           />
-          {config.instructions ? <Html html={String(config.instructions)} /> : null}
-          {qr ? <Qr src={qr} alt={`${coin} address QR code`} /> : null}
-          <CopyField label={`${coin} address (${config.network ?? ''})`} value={address} />
           {config.videoUrl ? <VideoEmbed url={String(config.videoUrl)} /> : null}
+          {config.instructions ? <Html html={String(config.instructions)} /> : null}
+          {qr ? <Qr src={qr} alt={`${coin} wallet QR code: scan to pay`} /> : null}
+          <CopyField label={`${coin} address (${network} network)`} value={address} />
           <Note>
             Networks matter. Sending {coin} on the wrong network loses the funds, and nobody can
             recover them — not the seller, not us.
@@ -517,32 +546,64 @@ function ExternalButton({ href, label }: { href: string; label: string }) {
 }
 
 function VideoEmbed({ url }: { url: string }) {
-  const embed = toEmbedUrl(url);
-  if (!embed) return null;
+  const video = toEmbed(url);
+  if (!video) return null;
+
+  if (video.type === 'link') {
+    return <ExternalButton href={video.url} label="Watch the video tutorial" />;
+  }
+
   return (
-    <div style={{ marginTop: 14, aspectRatio: '16 / 9' }}>
-      <iframe
-        src={embed}
-        title="How to pay"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
-        allowFullScreen
-        style={{
-          width: '100%',
-          height: '100%',
-          border: '1px solid var(--mp-border)',
-          borderRadius: 'var(--mp-radius-sm)',
-        }}
-      />
+    <div style={{ marginTop: 14 }}>
+      <p className="mp-fine" style={{ marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
+        Video tutorial
+      </p>
+      <div style={{ aspectRatio: '16 / 9' }}>
+        {video.type === 'file' ? (
+          <video
+            src={video.url}
+            controls
+            preload="metadata"
+            playsInline
+            style={{ width: '100%', height: '100%', border: '1px solid var(--mp-border)', borderRadius: 'var(--mp-radius-sm)', background: '#000' }}
+          />
+        ) : (
+          <iframe
+            src={video.url}
+            title="Video tutorial: how to pay"
+            loading="lazy"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
+            allowFullScreen
+            style={{ width: '100%', height: '100%', border: '1px solid var(--mp-border)', borderRadius: 'var(--mp-radius-sm)' }}
+          />
+        )}
+      </div>
     </div>
   );
 }
 
-function toEmbedUrl(url: string): string | null {
-  const youtube = /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/.exec(url);
-  if (youtube) return `https://www.youtube-nocookie.com/embed/${youtube[1]}`;
-  const vimeo = /vimeo\.com\/(?:video\/)?(\d+)/.exec(url);
-  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
-  return null;
+/**
+ * Turn any reasonable video URL into something playable. Merchants paste
+ * watch links, share links, Shorts and live URLs, and all of them should
+ * work; a strict pattern here is why a valid link shows no video.
+ */
+function toEmbed(raw: string): { type: 'iframe' | 'file' | 'link'; url: string } | null {
+  const url = raw.trim();
+  if (!url) return null;
+
+  const youtube =
+    /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/i.exec(url);
+  if (youtube) return { type: 'iframe', url: `https://www.youtube-nocookie.com/embed/${youtube[1]}?rel=0` };
+
+  const vimeo = /vimeo\.com\/(?:video\/|channels\/[^/]+\/|groups\/[^/]+\/videos\/)?([0-9]+)/i.exec(url);
+  if (vimeo) return { type: 'iframe', url: `https://player.vimeo.com/video/${vimeo[1]}` };
+
+  const dailymotion = /dailymotion\.com\/video\/([A-Za-z0-9]+)/i.exec(url);
+  if (dailymotion) return { type: 'iframe', url: `https://www.dailymotion.com/embed/video/${dailymotion[1]}` };
+
+  if (!/^https:\/\//i.test(url)) return null;
+  if (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url)) return { type: 'file', url };
+  return { type: 'link', url };
 }
 
 function referencePrefix(config: InstructionProps['config']): string {

@@ -466,6 +466,68 @@ textarea.mp-input { resize: vertical; min-height: 78px; }
 .mp-foot a:hover { color: var(--mp-text-muted); }
 .mp-foot-links { display: flex; gap: 14px; }
 
+/* ---------------------------------------------------------------- payment confirmation */
+
+.mp-confirm {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid var(--mp-border);
+  border-radius: var(--mp-radius-sm);
+}
+.mp-confirm-title { margin: 0; font-size: 14.5px; font-weight: 700; }
+.mp-confirm-sub { margin: 6px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--mp-text-muted); }
+.mp-confirm-ref { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--mp-text); }
+.mp-confirm-channels { margin-top: 14px; display: grid; gap: 14px; }
+.mp-confirm-buttons { display: grid; gap: 9px; align-content: start; }
+.mp-confirm-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--mp-text);
+  border: 1px solid var(--mp-border-strong);
+  border-radius: var(--mp-radius-sm);
+  transition: filter 0.15s ease, background 0.15s ease;
+}
+.mp-confirm-btn:hover { background: color-mix(in srgb, var(--mp-text) 6%, transparent); }
+.mp-confirm-btn--wa { color: #06270f; background: #25d366; border-color: #25d366; }
+.mp-confirm-btn--wa:hover { background: #25d366; filter: brightness(1.06); }
+.mp-confirm-qr { display: none; }
+.mp-confirm-or {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mp-text-faint);
+}
+.mp-confirm-form { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--mp-border); }
+.mp-confirm-done {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--mp-primary);
+  border-radius: var(--mp-radius-sm);
+  background: color-mix(in srgb, var(--mp-primary) 10%, transparent);
+}
+
+/* The QR is for buyers on a computer; on a phone the button is the fast way. */
+@media (min-width: 1025px) {
+  .mp-confirm-channels--qr { grid-template-columns: 1fr auto; align-items: center; }
+  .mp-confirm-qr {
+    display: grid;
+    justify-items: center;
+    gap: 7px;
+    font-size: 11px;
+    color: var(--mp-text-muted);
+    text-align: center;
+  }
+  .mp-confirm-qr img { display: block; padding: 7px; background: #fff; border-radius: 10px; }
+}
+
 /* ---------------------------------------------------------------- handoff dialog */
 
 .mp-modal {

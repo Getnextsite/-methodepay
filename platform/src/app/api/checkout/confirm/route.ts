@@ -8,6 +8,8 @@ export const dynamic = 'force-dynamic';
 const schema = z.object({
   nonce: z.string().min(10).max(64),
   reference: z.string().trim().max(120).optional(),
+  /** Set when the buyer opens a messaging channel instead of using the form. */
+  channel: z.enum(['whatsapp', 'email', 'telegram']).optional(),
 });
 
 /**
@@ -44,6 +46,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'That order is closed.' }, { status: 409 });
   }
 
-  await claimPayment(order.id, { reference: parsed.data.reference, channel: 'checkout' });
+  const { reference, channel } = parsed.data;
+
+  // Opening WhatsApp or email twice should not alert the seller twice. Once
+  // the order is waiting for them, only a new reference is worth repeating.
+  if (channel && !reference && order.status === 'AWAITING_VERIFICATION') {
+    return NextResponse.json({ ok: true });
+  }
+
+  const names = { whatsapp: 'WhatsApp', email: 'email', telegram: 'Telegram' } as const;
+  await claimPayment(order.id, {
+    reference,
+    channel: channel ?? 'checkout',
+    note: channel
+      ? `Buyer is confirming the payment by ${names[channel]}. Look for a message quoting the order reference.`
+      : undefined,
+  });
   return NextResponse.json({ ok: true });
 }
