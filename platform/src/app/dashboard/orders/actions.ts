@@ -10,6 +10,7 @@ import { notifyBuyerShipped } from '@/lib/notifier';
 import { dispatchWebhook } from '@/lib/webhooks';
 import { trackingUrl } from '@/lib/shipping';
 import type { ActionState } from '@/components/action-form';
+import { checkOrderOnChain } from '@/lib/chain/reconcile';
 
 /** Fetch an order inside the tenant scope, or nothing at all. */
 async function scopedOrder(tenant: Tenant, id: string) {
@@ -233,4 +234,20 @@ export async function recordClaimAction(
 
   revalidatePath('/dashboard/orders');
   return { message: 'Moved to awaiting verification.' };
+}
+
+export async function checkChainAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const tenant = await requireTenant();
+    assertRole(tenant, 'STAFF');
+    const order = await scopedOrder(tenant, String(formData.get('id') ?? ''));
+    if (!order) return { error: 'That order no longer exists.' };
+    const result = await checkOrderOnChain(order.id, tenant.user.email);
+    revalidatePath(`/dashboard/orders/${order.id}`);
+    if (!result) return { error: 'Nothing to check: this is not a crypto order with a transaction ID, or verification is switched off.' };
+    return result.status === 'verified' ? { message: result.message } : { error: result.message };
+  } catch (error) {
+    if (error instanceof ForbiddenError) return { error: error.message };
+    throw error;
+  }
 }

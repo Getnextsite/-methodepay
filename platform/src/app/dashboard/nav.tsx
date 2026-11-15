@@ -12,6 +12,7 @@ const GROUPS: { heading: string; items: { href: string; label: string; badgeKey?
       { href: '/dashboard/products', label: 'Products' },
       { href: '/dashboard/subscriptions', label: 'Subscriptions' },
       { href: '/dashboard/coupons', label: 'Coupons' },
+      { href: '/dashboard/recovery', label: 'Abandoned checkouts' },
     ],
   },
   {

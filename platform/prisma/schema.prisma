@@ -405,6 +405,13 @@ model NotificationSettings {
   confirmTelegram String?
   confirmMessage  String? @db.Text
 
+  // Abandoned checkout recovery: { enabled, delayHours, couponCode, subject, message }
+  recovery    Json @default("{}")
+  // Seller details printed on invoices: { businessName, address, taxId, footer }
+  invoice     Json @default("{}")
+  // Automatic on-chain verification of crypto payments: { enabled, mode }
+  chainVerify Json @default("{}")
+
   // Renewal reminders
   renewalsEnabled     Boolean @default(false)
   renewReminderDays   String  @default("7,3,1,0")

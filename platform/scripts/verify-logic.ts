@@ -23,6 +23,10 @@ import {
 import { readableOn, withAlpha } from '../src/lib/checkout/theme';
 import { parseConfirmChannels, resolveConfirm } from '../src/lib/confirm-channels';
 import { activeBump, bumpCents, orderBumpOf, parseBump, parseUpsell } from '../src/lib/offers';
+import { chainOf, cleanTxid, normalizeCoin, tronAddress } from '../src/lib/chain/networks';
+import { parseChainVerify } from '../src/lib/chain/settings';
+import { parseRecovery } from '../src/lib/recovery-settings';
+import { parseInvoice } from '../src/lib/invoice';
 import {
   METHOD_DEFINITIONS,
   defaultConfig,
@@ -288,6 +292,47 @@ function eq<T>(name: string, actual: T, expected: T) {
 
   eq('order meta: bump read back', orderBumpOf({ orderBump: { title: 'Priority setup', amountCents: 1900 } })?.amountCents, 1900);
   eq('order meta: no bump recorded', orderBumpOf({ customFields: {} }), null);
+}
+
+// ---------------------------------------------------------------- crypto verification
+{
+  eq('network: USDT TRC20 is TRON', chainOf('USDT', 'TRC20'), 'tron');
+  eq('network: USDT ERC20 is Ethereum', chainOf('USDT', 'ERC20'), 'eth');
+  eq('network: USDT BEP20 is BSC', chainOf('USDT', 'BEP20'), 'bsc');
+  eq('network: USDC Polygon is Polygon', chainOf('USDC', 'Polygon'), 'polygon');
+  eq('network: BTC Bitcoin is Bitcoin', chainOf('BTC', 'Bitcoin'), 'btc');
+  eq('network: LTC is Litecoin', chainOf('LTC', 'Litecoin'), 'ltc');
+  eq('network: ETH on Base is not guessed as Ethereum', chainOf('ETH', 'Base'), null);
+  eq('network: USDC on Solana is not checked', chainOf('USDC', 'Solana'), null);
+  eq('network: BTC Lightning is not checked', chainOf('BTC', 'Lightning'), null);
+  eq('network: USDT with no network is not guessed', chainOf('USDT', ''), null);
+
+  eq('coin: USDC.e counts as USDC', normalizeCoin('USDC.e'), 'USDC');
+  eq('coin: MATIC is POL', normalizeCoin('matic'), 'POL');
+
+  eq('txid: 0x prefix stripped', cleanTxid('0x' + 'AB'.repeat(32)), 'ab'.repeat(32));
+  eq('txid: whitespace trimmed', cleanTxid('  ' + 'cd'.repeat(32) + ' '), 'cd'.repeat(32));
+  eq('txid: too short rejected', cleanTxid('abc123'), null);
+  eq('txid: non-hex rejected', cleanTxid('z'.repeat(64)), null);
+
+  // Known pair: USDT's TRC-20 contract in hex and base58.
+  eq('tron: hex to base58', tronAddress('41a614f803b6fd780986a42c78ec9c7f77e6ded13c'), 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t');
+  eq('tron: bare 20-byte hex', tronAddress('a614f803b6fd780986a42c78ec9c7f77e6ded13c'), 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t');
+
+  eq('verify settings: on and automatic by default', JSON.stringify(parseChainVerify({})), JSON.stringify({ enabled: true, mode: 'auto' }));
+  eq('verify settings: review mode kept', parseChainVerify({ mode: 'review' }).mode, 'review');
+  eq('verify settings: can be switched off', parseChainVerify({ enabled: false }).enabled, false);
+}
+
+// ---------------------------------------------------------------- recovery & invoices
+{
+  eq('recovery: on by default', parseRecovery({}).enabled, true);
+  eq('recovery: default delay 1h', parseRecovery({}).delayHours, 1);
+  eq('recovery: delay above 48h rejected', parseRecovery({ delayHours: 200 }).delayHours, 1);
+  eq('recovery: coupon upper-cased', parseRecovery({ couponCode: ' save10 ' }).couponCode, 'SAVE10');
+  eq('recovery: blank subject falls back', parseRecovery({ subject: '  ' }).subject.includes('{product}'), true);
+  eq('invoice: fields trimmed', parseInvoice({ taxId: '  FR123 ' }).taxId, 'FR123');
+  eq('invoice: missing fields are blank', parseInvoice(null).businessName, '');
 }
 
 // ---------------------------------------------------------------- report

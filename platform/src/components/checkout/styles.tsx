@@ -522,6 +522,20 @@ textarea.mp-input { resize: vertical; min-height: 78px; }
 /* The confirmation box already sits on a card; drop its own frame there. */
 .mp-card > .mp-confirm { margin-top: 0; padding: 0; border: 0; }
 
+/* ---------------------------------------------------------------- order links + portal */
+
+.mp-order-links { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; }
+.mp-order-links a { color: var(--mp-primary); text-decoration: none; font-weight: 600; }
+.mp-order-links a:hover { text-decoration: underline; }
+.mp-portal-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.mp-portal-h2 { margin: 0 0 12px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mp-text-faint); }
+.mp-portal-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.mp-portal-order { display: grid; grid-template-columns: 1fr auto; gap: 10px 14px; align-items: center; }
+.mp-portal-order-main { min-width: 0; }
+.mp-portal-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.mp-portal-link { padding: 8px 12px; font-size: 13px; text-decoration: none; display: inline-block; }
+.mp-portal-link.mp-btn { width: auto; }
+
 /* ---------------------------------------------------------------- order bump */
 
 .mp-bump {

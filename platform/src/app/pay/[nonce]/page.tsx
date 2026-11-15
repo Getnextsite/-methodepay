@@ -12,6 +12,7 @@ import { CheckoutShell, Card, MerchantHeader, PolicyFooter } from '@/components/
 import { CopyField } from '@/components/checkout/copy-field';
 import { ConfirmPayment } from '@/components/checkout/confirm';
 import { OrderSummary } from '@/components/checkout/order-summary';
+import { checkOrderOnChainWithin, dueForCheck } from '@/lib/chain/reconcile';
 import { env } from '@/lib/env';
 import { parseConfirmChannels, resolveConfirm } from '@/lib/confirm-channels';
 
@@ -24,6 +25,13 @@ export default async function PayPage({ params }: { params: { nonce: string } })
     include: { product: true },
   });
   if (!order) notFound();
+
+  // A reported crypto payment may have confirmed since: look before rendering.
+  if (dueForCheck(order)) {
+    await checkOrderOnChainWithin(order.id, 6000);
+    const fresh = await prisma.order.findUnique({ where: { id: order.id }, select: { status: true } });
+    if (fresh?.status === 'PAID') redirect(`/o/${order.nonce}`);
+  }
 
   // A settled order has nothing left to do here.
   if (order.status === 'PAID' || order.status === 'REFUNDED') redirect(`/o/${order.nonce}`);

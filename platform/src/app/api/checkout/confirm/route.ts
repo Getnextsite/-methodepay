@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { claimPayment } from '@/lib/orders';
+import { checkOrderOnChainWithin } from '@/lib/chain/reconcile';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,5 +63,14 @@ export async function POST(request: Request) {
       ? `Buyer is confirming the payment by ${names[channel]}. Look for a message quoting the order reference.`
       : undefined,
   });
+  // A transaction ID on a crypto rail can be checked right away. Wait a few
+  // seconds for it; if the chain is slow the sweep and page views retry.
+  if (reference) {
+    const chain = await checkOrderOnChainWithin(order.id, 9000);
+    if (chain) {
+      const after = await prisma.order.findUnique({ where: { id: order.id }, select: { status: true } });
+      return NextResponse.json({ ok: true, chain: { status: chain.status, message: chain.message }, paid: after?.status === 'PAID' });
+    }
+  }
   return NextResponse.json({ ok: true });
 }

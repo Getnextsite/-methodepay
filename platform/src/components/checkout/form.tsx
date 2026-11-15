@@ -25,6 +25,8 @@ export type CheckoutFormProps = {
   } | null;
   /** Name and email carried over from an upsell. */
   prefill?: { name: string; email: string } | null;
+  /** Discount code carried in from a recovery email; applied on load. */
+  couponPrefill?: string;
   guarantee: { title: string; text: string; days: number } | null;
   renewalOfRef?: string;
   /**
@@ -81,6 +83,7 @@ export function CheckoutForm(props: CheckoutFormProps) {
     renewalOfRef,
     bump = null,
     prefill = null,
+    couponPrefill = '',
     methodsFirst = false,
     tiles = false,
     compactTotals = false,
@@ -89,7 +92,7 @@ export function CheckoutForm(props: CheckoutFormProps) {
   } = props;
 
   const [method, setMethod] = useState(methods[0]?.key ?? '');
-  const [coupon, setCoupon] = useState('');
+  const [coupon, setCoupon] = useState(couponPrefill);
   const [totals, setTotals] = useState<Totals>({
     discountCents: 0,
     couponLabel: null,
@@ -117,6 +120,12 @@ export function CheckoutForm(props: CheckoutFormProps) {
     }
     return v;
   }, [fieldVisibility, requiresShipping]);
+
+  // A code from a recovery email is applied once, straight away.
+  useEffect(() => {
+    if (couponPrefill) void applyCoupon();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
+  }, []);
 
   async function applyCoupon() {
     if (!coupon.trim()) return;

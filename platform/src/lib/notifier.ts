@@ -227,6 +227,9 @@ export async function notifyBuyerDelivery(
 <pre style="background:#07080f;border:1px solid #222738;border-radius:10px;padding:14px;font-size:13px;color:#00ffa3;white-space:pre-wrap;margin:0">${escapeHtml(accessCode)}</pre>`,
     );
   }
+  parts.push(
+    `<p style="margin:18px 0 0;font-size:13px"><a href="${env.checkoutUrl}/o/${order.nonce}/invoice" style="color:${ctx.profile.colorPrimary}">Download your receipt</a> · <a href="${env.checkoutUrl}/my/${ctx.account.slug}" style="color:${ctx.profile.colorPrimary}">All your orders</a></p>`,
+  );
   if (product.durationDays > 0 && order.serviceExpiresAt) {
     parts.push(
       `<p style="margin:16px 0 0;color:#9aa2bd;font-size:13px">Active until ${order.serviceExpiresAt.toISOString().slice(0, 10)}.</p>`,

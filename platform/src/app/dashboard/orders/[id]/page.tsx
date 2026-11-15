@@ -5,6 +5,7 @@ import { requireTenant } from '@/lib/tenancy';
 import { prisma } from '@/lib/db';
 import { formatMoney } from '@/lib/money';
 import { orderBumpOf } from '@/lib/offers';
+import { storedCheck } from '@/lib/chain/reconcile';
 import { prettyMethod } from '@/lib/notifier';
 import { CARRIERS, trackingUrl } from '@/lib/shipping';
 import { Field, PageHeader, Section, StatusBadge } from '@/components/ui';
@@ -12,6 +13,7 @@ import { ActionForm, SubmitButton } from '@/components/action-form';
 import {
   addNoteAction,
   cancelAction,
+  checkChainAction,
   markPaidAction,
   recordClaimAction,
   refundAction,
@@ -38,6 +40,8 @@ export default async function OrderPage({ params }: { params: { id: string } }) 
   const subtotal = order.amountCents + order.discountCents - order.shippingCents - (bump?.amountCents ?? 0);
   const tracking = trackingUrl(order.trackingCarrier, order.trackingNumber);
   const customFields = readCustomFields(order.meta);
+  const chain = storedCheck(order.meta);
+  const cryptoRail = ['crypto', 'bc_paypal', 'bc_cashapp', 'finchpay_btc'].includes(order.paymentMethod ?? '');
 
   return (
     <>
@@ -200,6 +204,46 @@ export default async function OrderPage({ params }: { params: { id: string } }) 
         </div>
 
         <div className="space-y-6">
+          {cryptoRail && order.paymentReference ? (
+            <Section
+              title="Blockchain check"
+              description="Looks the buyer's transaction ID up on the blockchain."
+            >
+              {chain ? (
+                <div className="mb-3.5 space-y-1 text-sm">
+                  <p className={chain.status === 'verified' ? 'text-mint' : chain.status === 'pending' ? 'text-amber-300' : 'text-ink-100'}>
+                    {chain.message}
+                  </p>
+                  <p className="text-xs text-ink-400">
+                    Checked {chain.checkedAt.slice(0, 16).replace('T', ' ')}
+                    {chain.explorerUrl ? (
+                      <>
+                        {' · '}
+                        <a href={chain.explorerUrl} target="_blank" rel="noreferrer" className="text-mint hover:underline">
+                          View on explorer
+                        </a>
+                      </>
+                    ) : null}
+                  </p>
+                </div>
+              ) : (
+                <p className="mb-3.5 text-sm text-ink-300">Not checked yet.</p>
+              )}
+              {order.status !== 'PAID' && order.status !== 'REFUNDED' ? (
+                <ActionForm action={checkChainAction}>
+                  <input type="hidden" name="id" value={order.id} />
+                  <SubmitButton variant="ghost">Check on the blockchain now</SubmitButton>
+                </ActionForm>
+              ) : null}
+            </Section>
+          ) : null}
+
+          <Section title="Invoice">
+            <a href={`/o/${order.nonce}/invoice`} target="_blank" rel="noreferrer" className="text-sm font-medium text-mint hover:underline">
+              Open the {order.status === 'PAID' ? 'receipt' : 'invoice'} ↗
+            </a>
+          </Section>
+
           {order.status !== 'PAID' && order.status !== 'REFUNDED' ? (
             <Section
               title="Confirm this payment"
@@ -339,6 +383,8 @@ function humanEvent(type: string): string {
     note: 'Note',
     gift_card_revealed: 'Gift-card code viewed',
     webhook_received: 'Provider webhook',
+    chain_check: 'Blockchain check',
+    recovery_sent: 'Recovery email sent',
   };
   return map[type] ?? type.replace(/_/g, ' ');
 }

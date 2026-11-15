@@ -38,6 +38,7 @@ export function ConfirmPayment({
   const [state, setState] = useState<'idle' | 'sending' | 'done'>('idle');
   const [via, setVia] = useState<Channel | 'txid' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [chain, setChain] = useState<{ status: string; message: string; paid: boolean } | null>(null);
 
   /**
    * Tell the seller the buyer has started confirming on a channel. The link
@@ -79,6 +80,11 @@ export function ConfirmPayment({
         setState('idle');
         return;
       }
+      const json = (await res.json().catch(() => ({}))) as {
+        chain?: { status: string; message: string };
+        paid?: boolean;
+      };
+      if (json.chain) setChain({ ...json.chain, paid: json.paid === true });
       setVia('txid');
       setState('done');
     } catch {
@@ -161,11 +167,24 @@ export function ConfirmPayment({
       {txid ? (
         state === 'done' ? (
           <div role="status" className="mp-confirm-done">
-            <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Thanks — the seller has been told.</p>
-            <p className="mp-note" style={{ marginTop: 6 }}>
-              They will verify the payment and activate your order. You will get an email the
-              moment they do. Keep your reference in case you need to chase it.
-            </p>
+            {chain?.paid ? (
+              <>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Payment confirmed on the blockchain.</p>
+                <p className="mp-note" style={{ marginTop: 6 }}>{chain.message}</p>
+                <a href={`/o/${nonce}`} className="mp-btn" style={{ marginTop: 12, display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+                  See your order
+                </a>
+              </>
+            ) : (
+              <>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Thanks — the seller has been told.</p>
+                <p className="mp-note" style={{ marginTop: 6 }}>
+                  {chain && (chain.status === 'pending' || chain.status === 'verified')
+                    ? `${chain.message} Your order is activated automatically once it is confirmed.`
+                    : 'They will verify the payment and activate your order. You will get an email the moment they do. Keep your reference in case you need to chase it.'}
+                </p>
+              </>
+            )}
           </div>
         ) : (
           <form onSubmit={submit} className="mp-confirm-form">

@@ -3,6 +3,8 @@ import { revalidatePath } from 'next/cache';
 import { requireTenant, assertRole, ForbiddenError } from '@/lib/tenancy';
 import { prisma } from '@/lib/db';
 import { Field, PageHeader, Section } from '@/components/ui';
+import { chainOf } from '@/lib/chain/verify';
+import { parseChainVerify } from '@/lib/chain/reconcile';
 import { ActionForm, SubmitButton, type ActionState } from '@/components/action-form';
 
 export const metadata: Metadata = { title: 'Wallets' };
@@ -64,12 +66,36 @@ async function removeWalletAction(_prev: ActionState, formData: FormData): Promi
   return { message: 'Wallet removed.' };
 }
 
+async function saveVerifyAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  'use server';
+  try {
+    const tenant = await requireTenant();
+    assertRole(tenant, 'ADMIN');
+    const chainVerify = parseChainVerify({
+      enabled: formData.get('enabled') === 'on',
+      mode: formData.get('mode') === 'review' ? 'review' : 'auto',
+    });
+    await prisma.notificationSettings.upsert({
+      where: { accountId: tenant.account.id },
+      create: { accountId: tenant.account.id, chainVerify },
+      update: { chainVerify },
+    });
+  } catch (error) {
+    if (error instanceof ForbiddenError) return { error: error.message };
+    throw error;
+  }
+  revalidatePath('/dashboard/wallets');
+  return { message: 'Verification settings saved.' };
+}
+
 export default async function WalletsPage() {
   const { account } = await requireTenant();
   const wallets = await prisma.wallet.findMany({
     where: { accountId: account.id },
     orderBy: [{ coin: 'asc' }, { network: 'asc' }],
   });
+  const notifications = await prisma.notificationSettings.findUnique({ where: { accountId: account.id } });
+  const verify = parseChainVerify(notifications?.chainVerify);
 
   return (
     <>
@@ -148,9 +174,20 @@ export default async function WalletsPage() {
                   className="flex items-start justify-between gap-3 rounded-xl border border-ink-600/70 bg-ink-900/40 p-3.5"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-white">
-                      {wallet.coin}
-                      {wallet.network ? ` · ${wallet.network}` : ''}
+                    <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-white">
+                      <span>
+                        {wallet.coin}
+                        {wallet.network ? ` · ${wallet.network}` : ''}
+                      </span>
+                      {chainOf(wallet.coin, wallet.network) ? (
+                        <span className="rounded-full bg-mint/10 px-2 py-0.5 text-[10.5px] font-medium text-mint">
+                          Auto-verified
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-ink-700 px-2 py-0.5 text-[10.5px] font-medium text-ink-300">
+                          Checked by hand
+                        </span>
+                      )}
                     </p>
                     <code className="mt-1 block break-all font-mono text-[11px] text-ink-300">
                       {wallet.address}
@@ -170,6 +207,27 @@ export default async function WalletsPage() {
               ))}
             </ul>
           )}
+        </Section>
+      </div>
+
+      <div className="mt-6">
+        <Section
+          title="Automatic verification"
+          description="When a buyer submits their transaction ID, MethodePay looks it up on the blockchain: right address, right coin, enough of it, sent after the order was placed, with enough confirmations, and not already used for another order. Supported: BTC, LTC, ETH, USDT/USDC on ERC-20, BEP-20 and Polygon, and TRX/USDT/USDC on TRON."
+        >
+          <ActionForm action={saveVerifyAction}>
+            <label className="flex items-center gap-2.5 text-sm text-ink-100">
+              <input type="checkbox" name="enabled" defaultChecked={verify.enabled} />
+              Check crypto payments on the blockchain automatically
+            </label>
+            <Field label="When a payment is verified" htmlFor="mode">
+              <select id="mode" name="mode" defaultValue={verify.mode} className="input">
+                <option value="auto">Mark the order paid and deliver it automatically</option>
+                <option value="review">Mark it as verified, I confirm it myself</option>
+              </select>
+            </Field>
+            <SubmitButton>Save verification settings</SubmitButton>
+          </ActionForm>
         </Section>
       </div>
     </>

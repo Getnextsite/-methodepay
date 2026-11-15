@@ -9,6 +9,7 @@ import { entitlementsFor } from '@/lib/entitlements';
 import { sendTelegram } from '@/lib/notifier';
 import { loadMerchantContext } from '@/lib/gateway/context';
 import { parseConfirmChannels } from '@/lib/confirm-channels';
+import { parseInvoice } from '@/lib/invoice';
 import { Banner, Field, PageHeader, Section } from '@/components/ui';
 import { ActionForm, SubmitButton, type ActionState } from '@/components/action-form';
 
@@ -56,6 +57,12 @@ async function saveNotificationsAction(
             ? existing.telegramBotTokenEnc
             : encryptSecret(submittedToken),
         telegramChatId: String(formData.get('telegramChatId') ?? '').trim() || null,
+        invoice: parseInvoice({
+          businessName: formData.get('invoiceBusinessName'),
+          address: formData.get('invoiceAddress'),
+          taxId: formData.get('invoiceTaxId'),
+          footer: formData.get('invoiceFooter'),
+        }),
         confirmChannels: {
           txid: formData.get('confirmTxid') === 'on',
           whatsapp: formData.get('confirmViaWhatsapp') === 'on',
@@ -121,6 +128,7 @@ export default async function NotificationsPage() {
 
   const storedToken = decryptSecret(settings.telegramBotTokenEnc);
   const channels = parseConfirmChannels(settings.confirmChannels);
+  const invoice = parseInvoice(settings.invoice);
 
   return (
     <>
@@ -205,6 +213,26 @@ export default async function NotificationsPage() {
                 Alert me when a buyer reports they have paid
               </label>
             </div>
+          </Section>
+
+          <Section
+            title="Invoice details"
+            description="Printed on every invoice and receipt buyers download. Blank fields fall back to your store name and support email."
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Legal / business name" htmlFor="invoiceBusinessName">
+                <input id="invoiceBusinessName" name="invoiceBusinessName" defaultValue={invoice.businessName} className="input" />
+              </Field>
+              <Field label="Tax / VAT ID" htmlFor="invoiceTaxId" hint="Optional.">
+                <input id="invoiceTaxId" name="invoiceTaxId" defaultValue={invoice.taxId} className="input" />
+              </Field>
+            </div>
+            <Field label="Business address" htmlFor="invoiceAddress">
+              <textarea id="invoiceAddress" name="invoiceAddress" rows={3} defaultValue={invoice.address} className="input" />
+            </Field>
+            <Field label="Footer note" htmlFor="invoiceFooter" hint="e.g. registration number, refund policy, bank details.">
+              <textarea id="invoiceFooter" name="invoiceFooter" rows={2} defaultValue={invoice.footer} className="input" />
+            </Field>
           </Section>
 
           <Section

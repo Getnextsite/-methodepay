@@ -244,7 +244,7 @@ export async function claimPayment(
     where: { id: orderId },
     data: {
       status: 'AWAITING_VERIFICATION',
-      paymentReference: input.reference?.slice(0, 64) || order.paymentReference,
+      paymentReference: input.reference?.slice(0, 120) || order.paymentReference,
     },
   });
 

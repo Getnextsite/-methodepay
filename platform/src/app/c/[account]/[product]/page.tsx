@@ -12,7 +12,7 @@ import { CheckoutShell, TrustBadges } from '@/components/checkout/shell';
 import { CheckoutView, shellWidthFor } from '@/components/checkout/designs';
 
 type Params = { account: string; product: string };
-type Search = { design?: string; from?: string };
+type Search = { design?: string; from?: string; coupon?: string };
 
 // Checkout pages are per-buyer and price-sensitive; never served from a cache.
 export const dynamic = 'force-dynamic';
@@ -155,6 +155,8 @@ export default async function CheckoutPage({
               }
             : null,
           prefill,
+          couponPrefill:
+            typeof searchParams?.coupon === 'string' ? searchParams.coupon.trim().toUpperCase().slice(0, 64) : '',
           guarantee: ctx.profile.guaranteeText
             ? {
                 title: ctx.profile.guaranteeTitle,

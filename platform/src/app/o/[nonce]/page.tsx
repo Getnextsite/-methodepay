@@ -9,6 +9,8 @@ import { trackingUrl } from '@/lib/shipping';
 import { CheckoutShell, Card, MerchantHeader, PolicyFooter } from '@/components/checkout/shell';
 import { CopyField } from '@/components/checkout/copy-field';
 import { OrderSummary } from '@/components/checkout/order-summary';
+import { AutoRefresh } from '@/components/checkout/auto-refresh';
+import { checkOrderOnChainWithin, dueForCheck, storedCheck } from '@/lib/chain/reconcile';
 import { UpsellCard, type UpsellOffer } from '@/components/checkout/upsell';
 import { entitlementsFor } from '@/lib/entitlements';
 import { parseUpsell } from '@/lib/offers';
@@ -50,11 +52,19 @@ export default async function OrderStatusPage({
   params: { nonce: string };
   searchParams: { paid?: string };
 }) {
-  const order = await prisma.order.findUnique({
+  let order = await prisma.order.findUnique({
     where: { nonce: params.nonce },
     include: { product: true },
   });
   if (!order) notFound();
+
+  // A crypto payment still waiting for confirmations: look again now.
+  if (dueForCheck(order)) {
+    await checkOrderOnChainWithin(order.id, 6000);
+    order = (await prisma.order.findUnique({ where: { nonce: params.nonce }, include: { product: true } }))!;
+  }
+  const chain = storedCheck(order.meta);
+  const watching = order.status === 'AWAITING_VERIFICATION' && !!chain && ['pending', 'not_found', 'error'].includes(chain.status);
 
   const ctx = await loadMerchantContext(order.accountId);
   const storeName = ctx.notifications.storeName || ctx.account.name;
@@ -154,6 +164,18 @@ export default async function OrderStatusPage({
             {order.status === 'PENDING' ? 'Complete your payment' : 'See the payment details again'}
           </a>
         ) : null}
+
+        {watching && chain ? (
+          <p className="mp-panel mp-note" style={{ marginTop: 18 }}>
+            {chain.message} This page refreshes by itself.
+          </p>
+        ) : null}
+        {watching ? <AutoRefresh seconds={45} /> : null}
+
+        <div className="mp-order-links">
+          <a href={`/o/${order.nonce}/invoice`}>{order.status === 'PAID' ? 'Download receipt' : 'Download invoice'}</a>
+          <a href={`/my/${ctx.account.slug}`}>All your orders</a>
+        </div>
 
         {upsell ? <UpsellCard offer={upsell} /> : null}
 
