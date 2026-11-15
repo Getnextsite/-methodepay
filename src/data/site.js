@@ -59,8 +59,8 @@ export const checkoutDesigns = [
 export const homeFeatures = [
   {
     icon: 'Wallet',
-    title: '9+ payment methods',
-    body: 'Stripe, PayPal, Alchemy Pay, WhatsApp Pay, Direct Crypto, OnRamPay, Western Union, Bank Transfer — plus five manual methods you define yourself.',
+    title: '17 payment methods',
+    body: 'Cards, PayPal, Binance Pay, Revolut, UPI, Cash App, WhatsApp, crypto, bank transfer, Western Union and more — plus five manual methods you define yourself.',
   },
   {
     icon: 'Palette',
@@ -86,6 +86,21 @@ export const homeFeatures = [
     icon: 'Bell',
     title: 'Telegram + email alerts',
     body: 'Every order pings your phone the moment it lands, with the method used and the buyer’s details attached.',
+  },
+  {
+    icon: 'Shield',
+    title: 'Automatic crypto verification',
+    body: 'The buyer pastes their transaction ID; MethodePay checks it on the blockchain (your wallet, the right amount, enough confirmations, never reused) and marks the order paid.',
+  },
+  {
+    icon: 'Mail',
+    title: 'Abandoned checkout recovery',
+    body: 'Buyers who left without paying get one reminder with their order ready to finish and an optional discount. See exactly how much revenue came back.',
+  },
+  {
+    icon: 'Users',
+    title: 'Customer portal & invoices',
+    body: 'Every buyer gets a page with their orders, downloads, renewals and printable receipts. Far fewer “where is my order?” messages.',
   },
 ]
 
@@ -161,6 +176,14 @@ export const featureGroups = [
         body: 'Money-back badges, secure-payment marks, discount codes, and privacy and terms links rendered inline where buyers look for them.',
       },
       {
+        title: 'Order bump & upsell',
+        body: 'Offer a one-click add-on right above the Pay button, and a second product after purchase. Prices are set by you and checked on the server, never by the browser.',
+      },
+      {
+        title: 'Scan to continue on the phone',
+        body: 'On a laptop, WhatsApp Pay shows a QR code so the buyer can finish in WhatsApp on their phone, with the order already written.',
+      },
+      {
         title: 'Mobile-first rendering',
         body: 'Every design is built phone-up: tap targets sized for thumbs, method lists that do not overflow, and forms that survive a slow connection.',
       },
@@ -189,6 +212,14 @@ export const featureGroups = [
       {
         title: 'Email notifications both ways',
         body: 'Confirmation to the buyer, order alert to you, both templated and both sent from your own site.',
+      },
+      {
+        title: 'Automatic crypto verification',
+        body: 'Transaction IDs are looked up on Bitcoin, Litecoin, Ethereum, BNB Chain, Polygon and TRON (USDT and USDC included). Right address, right amount, sent after the order, enough confirmations, never used twice. Then the order is paid and delivered, or flagged for you.',
+      },
+      {
+        title: 'Abandoned checkout recovery',
+        body: 'Unpaid checkouts get one reminder email after the delay you choose, linking back with the buyer’s details and your discount code already applied.',
       },
       {
         title: 'Code pools you control',
@@ -223,6 +254,18 @@ export const featureGroups = [
       {
         title: 'Your data stays yours',
         body: 'Orders, buyer details and proofs live in your database. No middleman account holds your customer list.',
+      },
+      {
+        title: 'Invoices and receipts',
+        body: 'A clean A4 invoice for every order, a receipt once it is paid, with your business name, address and tax ID. Saved as PDF in one click, in any language.',
+      },
+      {
+        title: 'Customer portal',
+        body: 'Buyers sign in with their order reference and email to see every order, download what they bought, renew subscriptions and get receipts.',
+      },
+      {
+        title: 'Confirmation channels you choose',
+        body: 'Let buyers confirm a manual payment by WhatsApp (with QR), by email, or with a transaction ID. Any combination, every message carrying the order reference.',
       },
     ],
   },
@@ -372,6 +415,10 @@ export const comparison = [
   },
   { row: 'Telegram alerts', starter: false, professional: true, agency: true },
   { row: 'Direct payment links', starter: false, professional: true, agency: true },
+  { row: 'Order bump & upsell', starter: false, professional: true, agency: true },
+  { row: 'Automatic crypto verification', starter: true, professional: true, agency: true },
+  { row: 'Abandoned checkout recovery', starter: true, professional: true, agency: true },
+  { row: 'Invoices & customer portal', starter: true, professional: true, agency: true },
   { row: 'Custom checkout fields', starter: true, professional: true, agency: true },
   { row: 'Coupons', starter: true, professional: true, agency: true },
   { row: 'Trust badges', starter: false, professional: true, agency: true },
@@ -398,6 +445,10 @@ export const comparison = [
 ]
 
 export const homeFaqs = [
+  {
+    q: 'Can MethodePay confirm crypto payments by itself?',
+    a: 'Yes. When a buyer submits their transaction ID, MethodePay looks it up on the blockchain and checks it paid your wallet, in the right coin, enough to cover the order, after the order was placed, with enough confirmations, and that it was never used for another order. Verified orders are marked paid and delivered automatically, or flagged for you to confirm if you prefer. Bitcoin, Litecoin, Ethereum, BNB Chain, Polygon and TRON are supported, including USDT and USDC.',
+  },
   {
     q: 'Do I need WooCommerce?',
     a: 'No. MethodePay is standalone — it does not extend WooCommerce and does not need it installed. You get a checkout, an orders screen and payment methods without the extra tables, cron jobs and templates WooCommerce brings with it.',
