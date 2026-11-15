@@ -11,6 +11,7 @@ import { formatMoney, fromCents } from '@/lib/money';
 import { CheckoutShell, Card, MerchantHeader, PolicyFooter } from '@/components/checkout/shell';
 import { CopyField } from '@/components/checkout/copy-field';
 import { ConfirmPayment } from '@/components/checkout/confirm';
+import { OrderSummary } from '@/components/checkout/order-summary';
 import { env } from '@/lib/env';
 import { parseConfirmChannels, resolveConfirm } from '@/lib/confirm-channels';
 
@@ -62,59 +63,70 @@ export default async function PayPage({ params }: { params: { nonce: string } })
     : null;
 
   return (
-    <CheckoutShell profile={ctx.profile}>
+    <CheckoutShell profile={ctx.profile} width="post">
       <MerchantHeader profile={ctx.profile} storeName={storeName} />
 
-      <Card>
-        <p style={caps}>Order {order.ref}</p>
-        <h1 style={{ margin: '8px 0 0', fontSize: 21, letterSpacing: '-0.015em' }}>
-          Pay {amount} with {label}
-        </h1>
-        <p style={{ margin: '7px 0 0', fontSize: 13.5, color: 'var(--mp-text-muted)' }}>
-          {order.product.name}
-        </p>
+      <div className="mp-split mp-split--post">
+        <div className="mp-stack">
+          <Card>
+            <p style={caps}>Order {order.ref}</p>
+            <h1 style={{ margin: '8px 0 0', fontSize: 23, letterSpacing: '-0.015em' }}>
+              Pay {amount} with {label}
+            </h1>
+            <p style={{ margin: '7px 0 0', fontSize: 13.5, color: 'var(--mp-text-muted)' }}>
+              {order.product.name}
+            </p>
 
-        <div
-          style={{
-            marginTop: 16,
-            paddingTop: 16,
-            borderTop: '1px solid var(--mp-border)',
-          }}
-        >
-          <Instructions
-            methodKey={methodKey}
-            config={config}
-            order={order}
-            manual={manual}
-            wallets={ctx.wallets}
-            origin={env.checkoutUrl}
-            ctx={ctx}
-          />
+            <div
+              style={{
+                marginTop: 18,
+                paddingTop: 18,
+                borderTop: '1px solid var(--mp-border)',
+              }}
+            >
+              <Instructions
+                methodKey={methodKey}
+                config={config}
+                order={order}
+                manual={manual}
+                wallets={ctx.wallets}
+                origin={env.checkoutUrl}
+                ctx={ctx}
+              />
+            </div>
+          </Card>
+
+          <Card>
+            <ConfirmPayment
+              nonce={order.nonce}
+              orderRef={order.ref}
+              txid={
+                confirm.txid
+                  ? {
+                      required: manual ? manual.requireReference : requiresReference(methodKey),
+                      label: referenceLabel(methodKey),
+                    }
+                  : null
+              }
+              whatsapp={confirm.whatsappUrl ? { url: confirm.whatsappUrl, qr: confirmQr } : null}
+              email={confirm.emailUrl ? { url: confirm.emailUrl } : null}
+              telegramUrl={telegramUrl}
+            />
+          </Card>
         </div>
 
-        <CopyField label="Your order reference" value={order.ref} />
-
-        <ConfirmPayment
-          nonce={order.nonce}
-          orderRef={order.ref}
-          txid={
-            confirm.txid
-              ? {
-                  required: manual ? manual.requireReference : requiresReference(methodKey),
-                  label: referenceLabel(methodKey),
-                }
-              : null
-          }
-          whatsapp={confirm.whatsappUrl ? { url: confirm.whatsappUrl, qr: confirmQr } : null}
-          email={confirm.emailUrl ? { url: confirm.emailUrl } : null}
-          telegramUrl={telegramUrl}
-        />
-      </Card>
-
-      <p style={{ margin: '16px 0 0', fontSize: 12, textAlign: 'center', color: 'var(--mp-text-faint)' }}>
-        Keep this page. You can return to it any time at{' '}
-        <span style={{ color: 'var(--mp-text-muted)' }}>{env.checkoutUrl}/pay/{order.nonce}</span>
-      </p>
+        <OrderSummary order={order} product={order.product} methodLabel={label}>
+          <Card>
+            <CopyField label="Your order reference" value={order.ref} />
+            <p style={{ margin: '12px 0 0', fontSize: 12, lineHeight: 1.6, color: 'var(--mp-text-faint)' }}>
+              Keep this page. You can come back to it any time at{' '}
+              <span style={{ color: 'var(--mp-text-muted)', wordBreak: 'break-all' }}>
+                {env.checkoutUrl}/pay/{order.nonce}
+              </span>
+            </p>
+          </Card>
+        </OrderSummary>
+      </div>
 
       <PolicyFooter
         profile={ctx.profile}

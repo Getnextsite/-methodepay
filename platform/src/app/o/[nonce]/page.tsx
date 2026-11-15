@@ -8,6 +8,7 @@ import { formatMoney } from '@/lib/money';
 import { trackingUrl } from '@/lib/shipping';
 import { CheckoutShell, Card, MerchantHeader, PolicyFooter } from '@/components/checkout/shell';
 import { CopyField } from '@/components/checkout/copy-field';
+import { OrderSummary } from '@/components/checkout/order-summary';
 import { UpsellCard, type UpsellOffer } from '@/components/checkout/upsell';
 import { entitlementsFor } from '@/lib/entitlements';
 import { parseUpsell } from '@/lib/offers';
@@ -70,9 +71,11 @@ export default async function OrderStatusPage({
   const upsell = await upsellFor(order, ctx);
 
   return (
-    <CheckoutShell profile={ctx.profile}>
+    <CheckoutShell profile={ctx.profile} width="post">
       <MerchantHeader profile={ctx.profile} storeName={storeName} />
 
+      <div className="mp-split mp-split--post">
+      <div className="mp-stack">
       <Card>
         {order.status === 'PAID' ? <Tick /> : null}
 
@@ -87,24 +90,6 @@ export default async function OrderStatusPage({
             ? 'Your payment went through on the provider side. We are waiting for their confirmation to land — this page updates itself when it does, usually within a minute.'
             : copy.body}
         </p>
-
-        <dl
-          style={{
-            margin: '18px 0 0',
-            paddingTop: 16,
-            borderTop: '1px solid var(--mp-border)',
-            display: 'grid',
-            gap: 8,
-            fontSize: 13.5,
-          }}
-        >
-          <Row label="Product" value={order.product.name} />
-          <Row label="Total" value={formatMoney(order.amountCents, order.currency)} />
-          <Row label="Placed" value={order.createdAt.toISOString().slice(0, 10)} />
-          {order.serviceExpiresAt ? (
-            <Row label="Access until" value={order.serviceExpiresAt.toISOString().slice(0, 10)} />
-          ) : null}
-        </dl>
 
         {order.status === 'PAID' && order.product.thanksMessage ? (
           <div
@@ -185,6 +170,10 @@ export default async function OrderStatusPage({
           </p>
         ) : null}
       </Card>
+      </div>
+
+      <OrderSummary order={order} product={order.product} />
+      </div>
 
       <PolicyFooter
         profile={ctx.profile}
@@ -230,15 +219,6 @@ async function upsellFor(
     // The checkout prefills name and email from this order, found by nonce.
     href: `/c/${ctx.account.slug}/${product.slug}?from=${order.nonce}`,
   };
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-      <dt style={{ color: 'var(--mp-text-muted)' }}>{label}</dt>
-      <dd style={{ margin: 0, textAlign: 'right' }}>{value}</dd>
-    </div>
-  );
 }
 
 function Tick() {

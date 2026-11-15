@@ -31,6 +31,9 @@ const CSS = `
 .mp-shell--narrow { max-width: min(540px, 100%); }
 .mp-shell--wide { max-width: var(--mp-width); }
 .mp-shell--full { max-width: 100%; padding-left: 0; padding-right: 0; }
+/* Screens after checkout: payment instructions, order status. Wide enough for
+   two columns whatever width the merchant set for the checkout itself. */
+.mp-shell--post { max-width: min(1140px, 100%); }
 
 /* Two columns, ratio set per design via --mp-cols. */
 .mp-split {
@@ -39,6 +42,9 @@ const CSS = `
   gap: var(--mp-gap, 22px);
   align-items: start;
 }
+
+/* After checkout: main content left, order summary right. */
+.mp-split--post { --mp-cols: minmax(0, 1.5fr) minmax(300px, 1fr); --mp-gap: 24px; }
 
 /* A rail that follows the buyer down a long form. */
 .mp-sticky { position: sticky; top: 24px; }
@@ -465,6 +471,56 @@ textarea.mp-input { resize: vertical; min-height: 78px; }
 .mp-foot a { color: inherit; }
 .mp-foot a:hover { color: var(--mp-text-muted); }
 .mp-foot-links { display: flex; gap: 14px; }
+
+/* ---------------------------------------------------------------- order summary */
+
+.mp-summary-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mp-summary-caps {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mp-text-faint);
+}
+.mp-pill { padding: 3px 10px; font-size: 11.5px; font-weight: 700; border-radius: 999px; white-space: nowrap; }
+.mp-pill--ok { color: var(--mp-primary); background: color-mix(in srgb, var(--mp-primary) 14%, transparent); }
+.mp-pill--wait { color: #f5b942; background: rgba(245, 185, 66, 0.13); }
+.mp-pill--off { color: var(--mp-text-muted); background: color-mix(in srgb, var(--mp-text) 8%, transparent); }
+.mp-summary-product { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+.mp-summary-img {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+  object-fit: cover;
+  border-radius: var(--mp-radius-sm);
+  border: 1px solid var(--mp-border);
+}
+.mp-summary-img--blank {
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--mp-primary);
+  background: color-mix(in srgb, var(--mp-primary) 12%, transparent);
+}
+.mp-summary-name { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.35; }
+.mp-summary-ref { margin: 3px 0 0; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--mp-text-muted); }
+.mp-summary-lines,
+.mp-summary-meta { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--mp-border); display: grid; gap: 9px; font-size: 13.5px; }
+.mp-summary-lines > div,
+.mp-summary-meta > div { display: flex; justify-content: space-between; gap: 12px; }
+.mp-summary-lines dt,
+.mp-summary-meta dt { color: var(--mp-text-muted); }
+.mp-summary-lines dd,
+.mp-summary-meta dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.mp-summary-off dd { color: var(--mp-primary); }
+.mp-summary-total { margin-top: 3px; padding-top: 10px; border-top: 1px dashed var(--mp-border); }
+.mp-summary-total dt { color: var(--mp-text); font-weight: 700; }
+.mp-summary-total dd { font-size: 19px; font-weight: 800; color: var(--mp-primary); }
+
+/* The confirmation box already sits on a card; drop its own frame there. */
+.mp-card > .mp-confirm { margin-top: 0; padding: 0; border: 0; }
 
 /* ---------------------------------------------------------------- order bump */
 

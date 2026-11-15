@@ -11,7 +11,7 @@ import { CheckoutStyles } from './styles';
  * media queries and hover states are exactly what a checkout needs and exactly
  * what an inline style cannot express.
  */
-export type ShellWidth = 'narrow' | 'wide' | 'full';
+export type ShellWidth = 'narrow' | 'wide' | 'full' | 'post';
 
 export function CheckoutShell({
   profile,

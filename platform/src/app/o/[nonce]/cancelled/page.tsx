@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { loadMerchantContext } from '@/lib/gateway/context';
 import { formatMoney } from '@/lib/money';
 import { CheckoutShell, Card, MerchantHeader, PolicyFooter } from '@/components/checkout/shell';
+import { OrderSummary } from '@/components/checkout/order-summary';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Payment not completed', robots: { index: false } };
@@ -26,8 +27,9 @@ export default async function CancelledPage({ params }: { params: { nonce: strin
   const storeName = ctx.notifications.storeName || ctx.account.name;
 
   return (
-    <CheckoutShell profile={ctx.profile}>
+    <CheckoutShell profile={ctx.profile} width="post">
       <MerchantHeader profile={ctx.profile} storeName={storeName} />
+      <div className="mp-split mp-split--post">
       <Card>
         <h1 style={{ margin: 0, fontSize: 22, letterSpacing: '-0.02em' }}>
           You did not finish paying
@@ -73,6 +75,9 @@ export default async function CancelledPage({ params }: { params: { nonce: strin
           </a>
         </div>
       </Card>
+
+      <OrderSummary order={order} product={order.product} />
+      </div>
       <PolicyFooter
         profile={ctx.profile}
         storeName={storeName}
