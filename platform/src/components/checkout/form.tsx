@@ -308,9 +308,9 @@ export function CheckoutForm(props: CheckoutFormProps) {
                   {option.iconUrl ? (
                     // A merchant with the rights to the real artwork wins.
                     // eslint-disable-next-line @next/next/no-img-element -- merchant-hosted icon
-                    <img src={option.iconUrl} alt="" style={{ height: 20, width: 'auto' }} />
+                    <img src={option.iconUrl} alt="" style={{ height: 26, width: 'auto' }} />
                   ) : (
-                    <MethodIcon rail={option.key} tone={option.tone} size={20} />
+                    <MethodIcon rail={option.key} tone={option.tone} size={26} />
                   )}
                   <span className="mp-method-name">{option.label}</span>
                   {option.recommended ? <span className="mp-tag">Recommended</span> : null}
@@ -499,7 +499,7 @@ function HandoffDialog({ handoff, onClose }: { handoff: Handoff; onClose: () => 
     >
       <div className="mp-modal-card">
         <div className="mp-modal-head">
-          <MethodIcon rail={handoff.method} tone={handoff.tone} size={22} />
+          <MethodIcon rail={handoff.method} tone={handoff.tone} size={30} />
           <h3 id="mp-modal-title" className="mp-modal-title">
             {handoff.label}
           </h3>

@@ -1,12 +1,38 @@
 /**
  * Payment rail icons, shared with the hosted checkout.
  *
- * Generated from platform/src/components/checkout/method-icon.tsx so the
- * marketing site shows the same marks buyers see at checkout. Each sits on a
- * white tile, which keeps dark artwork (PayPal above all) readable on any
- * background in either theme.
+ * Uses the same tile images as the checkout (public/rails/<rail>.webp, a copy
+ * of platform/public/rails). The SVG artwork below is only the fallback for a
+ * rail without a tile.
  */
+const TILE_RAILS = new Set([
+  'stripe', 'paypal', 'alchemypay', 'onramppay', 'op_cashapp', 'op_binance', 'op_revolut',
+  'op_upi', 'op_paypalus', 'finchpay_btc', 'crypto', 'whatsapp', 'western_union',
+  'bank_transfer', 'paypal_ff', 'bc_paypal', 'bc_cashapp', 'amazon_giftcard',
+])
+
+function tileFor(rail) {
+  if (rail.startsWith('manual')) return '/rails/manual.webp'
+  return TILE_RAILS.has(rail) ? `/rails/${rail}.webp` : null
+}
+
 export default function BrandIcon({ rail, tone = '#64748b', size = 20, title }) {
+  const tile = tileFor(rail)
+  if (tile) {
+    return (
+      <img
+        src={tile}
+        width={size}
+        height={size}
+        alt={title ?? ''}
+        aria-hidden={title ? undefined : true}
+        loading="lazy"
+        decoding="async"
+        style={{ flex: '0 0 auto', display: 'block', width: size, height: size, borderRadius: size * 0.22 }}
+      />
+    )
+  }
+
   const art = ART[rail] ?? null;
 
   return (

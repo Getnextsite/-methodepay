@@ -1,15 +1,26 @@
 // Single source of truth for site copy and pricing.
 
+// Every rail the hosted checkout offers; `rail` picks its icon in public/rails.
 export const paymentMethods = [
-  { name: 'Stripe', short: 'Cards worldwide', tone: '#8b83ff', initials: 'S' },
-  { name: 'PayPal', short: 'Wallet + cards', tone: '#4da3e8', initials: 'PP' },
-  { name: 'Alchemy Pay', short: 'Embedded on-ramp', tone: '#00d4b1', initials: 'AP' },
-  { name: 'WhatsApp Pay', short: 'Chat to close', tone: '#25d366', initials: 'WA' },
-  { name: 'Direct Crypto', short: 'USDT, BTC, ETH', tone: '#f7931a', initials: '₿' },
-  { name: 'OnRamPay', short: 'Fiat to crypto', tone: '#7c5cff', initials: 'OR' },
-  { name: 'Western Union', short: 'Cash payout codes', tone: '#ffd400', initials: 'WU' },
-  { name: 'Bank Transfer', short: 'Local IBAN / RIB', tone: '#8aa2ff', initials: 'BT' },
-  { name: 'Manual ×5', short: 'M-Pesa, PIX, mobile money', tone: '#00d632', initials: 'M5' },
+  { rail: 'stripe', name: 'Stripe', short: 'Cards worldwide' },
+  { rail: 'paypal', name: 'PayPal', short: 'Wallet + cards' },
+  { rail: 'finchpay_btc', name: 'Visa / Mastercard', short: 'Card to Bitcoin, 150+ countries' },
+  { rail: 'whatsapp', name: 'WhatsApp Pay', short: 'Chat to close' },
+  { rail: 'crypto', name: 'Direct Crypto', short: 'USDT, BTC, ETH' },
+  { rail: 'op_binance', name: 'Binance Pay', short: 'Pay from a Binance balance' },
+  { rail: 'op_revolut', name: 'Revolut', short: 'Instant app transfer' },
+  { rail: 'op_upi', name: 'UPI', short: 'Google Pay, PhonePe, Paytm' },
+  { rail: 'op_cashapp', name: 'Cash App', short: 'US buyers' },
+  { rail: 'op_paypalus', name: 'PayPal (USA)', short: 'US PayPal accounts' },
+  { rail: 'onramppay', name: 'Cards / Bank / Crypto', short: 'OnRamPay, 20+ on-ramps' },
+  { rail: 'alchemypay', name: 'Alchemy Pay', short: 'Embedded card-to-crypto' },
+  { rail: 'bc_paypal', name: 'BTC-PayPal', short: 'Buy BTC in PayPal, send it to you' },
+  { rail: 'bc_cashapp', name: 'BTC-Cash App', short: 'Buy BTC in Cash App, send it to you' },
+  { rail: 'paypal_ff', name: 'PayPal Friends & Family', short: 'Direct PayPal transfer' },
+  { rail: 'western_union', name: 'Western Union', short: 'Cash pickup, MTCN' },
+  { rail: 'bank_transfer', name: 'Bank Transfer', short: 'Local IBAN / RIB / SEPA' },
+  { rail: 'amazon_giftcard', name: 'Amazon eGift Card', short: 'Gift card codes' },
+  { rail: 'manual', name: 'Manual methods ×5', short: 'M-Pesa, PIX, mobile money' },
 ]
 
 export const checkoutDesigns = [

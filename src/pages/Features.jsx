@@ -3,6 +3,7 @@ import Reveal from '../components/Reveal.jsx'
 import Glow from '../components/Glow.jsx'
 import ScreenMock from '../components/ScreenMock.jsx'
 import CtaBand from '../components/CtaBand.jsx'
+import BrandIcon from '../components/BrandIcon.jsx'
 import * as Icons from '../components/Icons.jsx'
 import { checkoutDesigns, featureGroups, paymentMethods } from '../data/site.js'
 
@@ -128,13 +129,7 @@ export default function Features() {
             {paymentMethods.map((m, i) => (
               <Reveal key={m.name} delay={(i % 3) * 60} as="li">
                 <div className="glass glass-hover flex h-full items-center gap-3.5 p-4">
-                  <span
-                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-xs font-bold"
-                    style={{ background: `${m.tone}1f`, color: m.tone }}
-                    aria-hidden="true"
-                  >
-                    {m.initials}
-                  </span>
+                  <BrandIcon rail={m.rail} size={44} />
                   <span>
                     <span className="block text-sm font-bold text-white">{m.name}</span>
                     <span className="block text-xs text-zinc-500">{m.short}</span>

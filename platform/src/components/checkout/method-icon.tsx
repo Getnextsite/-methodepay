@@ -1,21 +1,43 @@
 /**
- * The payment rail icons, ported from the plugin.
+ * The payment rail icons.
  *
- * These are the plugin's own marks, lifted from `RamperPay_Gateway::
- * admin_method_icon()` and converted to JSX — the same artwork merchants and
- * buyers already recognise, not a redraw. Two rails post-date that icon set
- * (`finchpay_btc` and `amazon_giftcard`) and are drawn here in the same style.
+ * Each rail has a tile image in public/rails/<rail>.webp: a self-contained
+ * rounded tile with its own background, so it reads on any merchant palette,
+ * light or dark. Merchant-defined manual rails (manual_1 … manual_5) share
+ * one tile.
  *
- * Each sits on a white tile. The plugin rendered these on a light admin screen,
- * so several of them — PayPal above all — are dark artwork on a transparent
- * background and would disappear into a dark checkout. The tile also means a
- * merchant palette can never make a brand mark unreadable, which is how real
- * checkouts present card marks anyway. Rails that carry their own full-bleed
- * background simply cover it.
+ * The SVG artwork below, ported from the plugin, is the fallback for any rail
+ * that has no tile image.
  *
  * A merchant with the rights to the official artwork still overrides all of
  * this with `iconUrl` on the rail, which the checkout prefers.
  */
+const TILE_RAILS = new Set([
+  'stripe',
+  'paypal',
+  'alchemypay',
+  'onramppay',
+  'op_cashapp',
+  'op_binance',
+  'op_revolut',
+  'op_upi',
+  'op_paypalus',
+  'finchpay_btc',
+  'crypto',
+  'whatsapp',
+  'western_union',
+  'bank_transfer',
+  'paypal_ff',
+  'bc_paypal',
+  'bc_cashapp',
+  'amazon_giftcard',
+]);
+
+function tileFor(rail: string): string | null {
+  if (rail.startsWith('manual')) return '/rails/manual.webp';
+  return TILE_RAILS.has(rail) ? `/rails/${rail}.webp` : null;
+}
+
 export function MethodIcon({
   rail,
   tone,
@@ -29,6 +51,23 @@ export function MethodIcon({
   /** Set only when the icon is the sole label; otherwise it stays decorative. */
   title?: string;
 }) {
+  const tile = tileFor(rail);
+  if (tile) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- tiny static tile, no optimiser needed
+      <img
+        src={tile}
+        width={size}
+        height={size}
+        alt={title ?? ''}
+        aria-hidden={title ? undefined : true}
+        loading="lazy"
+        decoding="async"
+        style={{ flex: '0 0 auto', display: 'block', width: size, height: size, borderRadius: size * 0.22 }}
+      />
+    );
+  }
+
   const art = ART[rail] ?? null;
 
   return (
