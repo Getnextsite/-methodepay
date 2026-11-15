@@ -514,8 +514,9 @@ textarea.mp-input { resize: vertical; min-height: 78px; }
   background: color-mix(in srgb, var(--mp-primary) 10%, transparent);
 }
 
-/* The QR is for buyers on a computer; on a phone the button is the fast way. */
-@media (min-width: 1025px) {
+/* The QR is for buyers on a laptop or desktop (mouse or trackpad); on a phone
+   or tablet the button is the fast way. */
+@media (hover: hover) and (pointer: fine) {
   .mp-confirm-channels--qr { grid-template-columns: 1fr auto; align-items: center; }
   .mp-confirm-qr {
     display: grid;

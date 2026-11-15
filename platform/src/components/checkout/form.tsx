@@ -159,10 +159,13 @@ export function CheckoutForm(props: CheckoutFormProps) {
       });
       const json = (await res.json()) as { url?: string; qr?: string; error?: string };
       if (json.url) {
-        // On a computer, offer to carry on by phone. On a phone the buyer is
-        // already where the app is, so a QR would only be in the way.
-        const desktop = window.matchMedia('(min-width: 1025px)').matches;
-        if (json.qr && desktop) {
+        // On a laptop or desktop, offer to carry on by phone. On a phone or
+        // tablet the buyer is already where WhatsApp is, so a QR would only be
+        // in the way. Decided by the input device (mouse or trackpad) rather
+        // than screen width, so a laptop with display scaling or a narrow
+        // window still counts as a laptop.
+        const laptop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+        if (json.qr && laptop) {
           setHandoff({
             url: json.url,
             qr: json.qr,

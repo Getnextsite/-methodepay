@@ -12,19 +12,11 @@ import { env } from '@/lib/env';
 export const dynamic = 'force-dynamic';
 
 /**
- * Rails a buyer on a computer usually wants to finish on their phone: the
- * wallet apps (Binance, Revolut, UPI, PayPal, Cash App) and WhatsApp all live
- * there. For these the checkout offers a QR of the payment link instead of
- * redirecting straight away, as the plugin did.
+ * Rails where a buyer on a laptop gets a QR to continue on their phone
+ * instead of being sent straight on. Only WhatsApp Pay: WhatsApp lives on the
+ * phone, while the wallet rails open their payment page in the browser.
  */
-const QR_RAILS = new Set([
-  'op_binance',
-  'op_revolut',
-  'op_upi',
-  'op_paypalus',
-  'op_cashapp',
-  'whatsapp',
-]);
+const QR_RAILS = new Set(['whatsapp']);
 
 async function qrFor(url: string): Promise<string | null> {
   try {
