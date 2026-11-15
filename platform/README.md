@@ -234,8 +234,6 @@ Honest list of what is scaffolded rather than finished:
   TLS provisioning or host-to-account routing middleware yet.
 - **Webhook retries** record every failed delivery with its error, but nothing
   re-drives the queue; `WebhookDelivery` is ready for a worker.
-- **Order bump and post-purchase upsell** have profile storage and plan gating;
-  the checkout does not render them yet.
 - **Password reset** is not built. Invites work; a forgotten password currently
   needs a manual hash update.
 - **The AI reply drafter** from plugin 3.11 was not ported. The notifier is the

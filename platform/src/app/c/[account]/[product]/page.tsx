@@ -6,12 +6,13 @@ import { loadMerchantContext } from '@/lib/gateway/context';
 import { resolveMethods } from '@/lib/gateway/resolve';
 import { inStock } from '@/lib/shipping';
 import { canUseDesign, entitlementsFor } from '@/lib/entitlements';
+import { activeBump } from '@/lib/offers';
 import { ALL_DESIGNS } from '@/lib/checkout/design-copy';
 import { CheckoutShell, TrustBadges } from '@/components/checkout/shell';
 import { CheckoutView, shellWidthFor } from '@/components/checkout/designs';
 
 type Params = { account: string; product: string };
-type Search = { design?: string };
+type Search = { design?: string; from?: string };
 
 // Checkout pages are per-buyer and price-sensitive; never served from a cache.
 export const dynamic = 'force-dynamic';
@@ -107,6 +108,22 @@ export default async function CheckoutPage({
   }
 
   const methods = resolveMethods(ctx, product);
+
+  // Coming from an upsell: prefill name and email from the order they just
+  // placed. The order is found by its unguessable nonce and must belong to
+  // this store, so the buyer's details never travel in the URL.
+  let prefill: { name: string; email: string } | null = null;
+  const from = typeof searchParams?.from === 'string' ? searchParams.from.slice(0, 64) : '';
+  if (from.length >= 16) {
+    const previous = await prisma.order.findUnique({
+      where: { nonce: from },
+      select: { accountId: true, buyerName: true, buyerEmail: true },
+    });
+    if (previous && previous.accountId === account.id) {
+      prefill = { name: previous.buyerName, email: previous.buyerEmail };
+    }
+  }
+  const bump = activeBump(ctx.profile.bump, entitlementsFor(account).offers);
   const design = requestedDesign(searchParams, account) ?? ctx.profile.design;
   const profile = design === ctx.profile.design ? ctx.profile : { ...ctx.profile, design };
 
@@ -126,6 +143,18 @@ export default async function CheckoutPage({
           fieldVisibility: asRecord(ctx.profile.fieldVisibility),
           customFields: readCustomFields(ctx.profile.customFields),
           requiresShipping: product.requiresShipping,
+          bump: bump
+            ? {
+                headline: bump.headline,
+                title: bump.title,
+                description: bump.description,
+                priceCents: bump.priceCents,
+                originalPriceCents: bump.originalPriceCents,
+                imageUrl: bump.imageUrl,
+                badge: bump.badge,
+              }
+            : null,
+          prefill,
           guarantee: ctx.profile.guaranteeText
             ? {
                 title: ctx.profile.guaranteeTitle,

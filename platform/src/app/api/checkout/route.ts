@@ -45,6 +45,7 @@ const schema = z.object({
   giftCardCode: z.string().trim().max(32).optional(),
   giftCardCountry: z.string().trim().max(8).optional(),
   renewalOfRef: z.string().trim().max(32).optional(),
+  orderBump: z.boolean().optional(),
 });
 
 /**
@@ -140,6 +141,7 @@ export async function POST(request: Request) {
     giftCardCountry: input.giftCardCountry,
     customFields,
     renewalOfId,
+    orderBump: input.orderBump === true,
   });
 
   const origin = env.checkoutUrl || new URL(request.url).origin;

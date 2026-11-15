@@ -9,6 +9,8 @@ import { dispatchWebhook } from './webhooks';
 import { validateCoupon } from './coupons';
 import { quoteShipping, reduceStock, restoreStock } from './shipping';
 import { encryptSecret } from './crypto';
+import { entitlementsFor } from './entitlements';
+import { activeBump } from './offers';
 
 export type CreateOrderInput = {
   accountId: string;
@@ -30,6 +32,8 @@ export type CreateOrderInput = {
   giftCardCountry?: string;
   customFields?: Record<string, string>;
   renewalOfId?: string;
+  /** The buyer ticked the order bump. The price comes from settings, not from here. */
+  orderBump?: boolean;
 };
 
 /**
@@ -59,8 +63,15 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     subtotalCents: input.product.priceCents - discountCents,
   });
 
+  // The order bump is added after the coupon, so a discount code never
+  // discounts the add-on, and its price is read from settings only.
+  const bump = input.orderBump
+    ? activeBump(ctx.profile.bump, entitlementsFor(ctx.account).offers)
+    : null;
+  const bumpCents = bump?.priceCents ?? 0;
+
   const totals = computeTotals({
-    subtotalCents: input.product.priceCents,
+    subtotalCents: input.product.priceCents + bumpCents,
     discountCents,
     shippingCents: shipping.amountCents,
   });
@@ -95,12 +106,17 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       giftCardCountry: input.giftCardCountry?.trim().toUpperCase() || null,
       // A pending order should not hold stock or a quote for ever.
       expiresAt: new Date(Date.now() + 24 * 3600_000),
-      meta: { customFields: input.customFields ?? {} },
+      meta: {
+        customFields: input.customFields ?? {},
+        ...(bump ? { orderBump: { title: bump.title, amountCents: bumpCents } } : {}),
+      },
       events: {
         create: {
           type: 'created',
           actor: 'buyer',
-          note: `Order created for ${input.product.name}.`,
+          note: bump
+            ? `Order created for ${input.product.name}, with the order bump (${bump.title}).`
+            : `Order created for ${input.product.name}.`,
           meta: { method: input.paymentMethod, subtotal: totals.subtotalCents },
         },
       },

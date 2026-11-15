@@ -4,6 +4,7 @@ import type { Order, Product } from '@prisma/client';
 import { decryptSecret } from './crypto';
 import { emailConfigured, env } from './env';
 import { formatMoney } from './money';
+import { orderBumpOf } from './offers';
 import type { MerchantContext } from './gateway/types';
 
 /**
@@ -115,8 +116,14 @@ function orderTable(order: Order, product: Product): string {
 ${row('Reference', order.ref)}
 ${row('Product', product.name)}
 ${row('Amount', formatMoney(order.amountCents, order.currency))}
+${bumpRow(order)}
 ${order.paymentMethod ? row('Method', prettyMethod(order.paymentMethod)) : ''}
 </table>`;
+}
+
+function bumpRow(order: Order): string {
+  const bump = orderBumpOf(order.meta);
+  return bump ? row('Order bump', `${bump.title} (+${formatMoney(bump.amountCents, order.currency)})`) : '';
 }
 
 export function prettyMethod(key: string): string {
@@ -174,6 +181,9 @@ ${
       `Ref: <code>${escapeHtml(order.ref)}</code>`,
       `Product: ${escapeHtml(product.name)}`,
       `Amount: ${escapeHtml(formatMoney(order.amountCents, order.currency))}`,
+      ...(orderBumpOf(order.meta)
+        ? [`Order bump: ${escapeHtml(orderBumpOf(order.meta)!.title)} (+${escapeHtml(formatMoney(orderBumpOf(order.meta)!.amountCents, order.currency))})`]
+        : []),
       `Buyer: ${escapeHtml(order.buyerName)} (${escapeHtml(order.buyerEmail)})`,
       order.paymentMethod ? `Method: ${escapeHtml(prettyMethod(order.paymentMethod))}` : '',
       order.paymentReference ? `Reference: <code>${escapeHtml(order.paymentReference)}</code>` : '',

@@ -22,6 +22,7 @@ import {
 } from '../src/lib/entitlements';
 import { readableOn, withAlpha } from '../src/lib/checkout/theme';
 import { parseConfirmChannels, resolveConfirm } from '../src/lib/confirm-channels';
+import { activeBump, bumpCents, orderBumpOf, parseBump, parseUpsell } from '../src/lib/offers';
 import {
   METHOD_DEFINITIONS,
   defaultConfig,
@@ -265,6 +266,28 @@ function eq<T>(name: string, actual: T, expected: T) {
   eq('nothing ticked still leaves a way to confirm', on({}).txid, true);
   const noNumber = resolveConfirm({ ...base, whatsappNumber: '', channels: { txid: false, whatsapp: true, email: false, emailTo: '' } });
   check('whatsapp ticked without a number falls back to TXID', noNumber.whatsappUrl === null && noNumber.txid === true);
+}
+
+// ---------------------------------------------------------------- order bump & upsell
+{
+  const live = { enabled: true, title: 'Priority setup', priceCents: 1900, originalPriceCents: 3900 };
+
+  eq('bump: price taken from settings', bumpCents(live, true, true), 1900);
+  eq('bump: nothing added when not ticked', bumpCents(live, true, false), 0);
+  eq('bump: nothing added without the offers plan', bumpCents(live, false, true), 0);
+  eq('bump: switched off adds nothing', bumpCents({ ...live, enabled: false }, true, true), 0);
+  eq('bump: no title means no bump', activeBump({ ...live, title: '' }, true), null);
+  eq('bump: zero price means no bump', activeBump({ ...live, priceCents: 0 }, true), null);
+  eq('bump: negative price is ignored', parseBump({ ...live, priceCents: -500 }).priceCents, 0);
+  eq('bump: http image rejected', parseBump({ ...live, imageUrl: 'http://x.test/a.png' }).imageUrl, '');
+  eq('bump: https image kept', parseBump({ ...live, imageUrl: 'https://x.test/a.png' }).imageUrl, 'https://x.test/a.png');
+  eq('bump: empty settings use the default headline', parseBump({}).headline, 'One-time offer — add it to your order');
+
+  eq('upsell: blank labels fall back', parseUpsell({ acceptLabel: '  ' }).acceptLabel, 'Yes, add this to my order');
+  eq('upsell: off by default', parseUpsell(null).enabled, false);
+
+  eq('order meta: bump read back', orderBumpOf({ orderBump: { title: 'Priority setup', amountCents: 1900 } })?.amountCents, 1900);
+  eq('order meta: no bump recorded', orderBumpOf({ customFields: {} }), null);
 }
 
 // ---------------------------------------------------------------- report

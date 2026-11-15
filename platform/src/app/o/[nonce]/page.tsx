@@ -8,6 +8,9 @@ import { formatMoney } from '@/lib/money';
 import { trackingUrl } from '@/lib/shipping';
 import { CheckoutShell, Card, MerchantHeader, PolicyFooter } from '@/components/checkout/shell';
 import { CopyField } from '@/components/checkout/copy-field';
+import { UpsellCard, type UpsellOffer } from '@/components/checkout/upsell';
+import { entitlementsFor } from '@/lib/entitlements';
+import { parseUpsell } from '@/lib/offers';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Your order', robots: { index: false } };
@@ -64,6 +67,7 @@ export default async function OrderStatusPage({
   const copy = HEADLINES[order.status];
   const accessCode = order.status === 'PAID' ? decryptSecret(order.product.deliveryAccessCodeEnc) : '';
   const tracking = trackingUrl(order.trackingCarrier, order.trackingNumber);
+  const upsell = await upsellFor(order, ctx);
 
   return (
     <CheckoutShell profile={ctx.profile}>
@@ -166,6 +170,8 @@ export default async function OrderStatusPage({
           </a>
         ) : null}
 
+        {upsell ? <UpsellCard offer={upsell} /> : null}
+
         {ctx.notifications.supportEmail ? (
           <p style={{ margin: '18px 0 0', fontSize: 12.5, color: 'var(--mp-text-faint)' }}>
             Something wrong? Email{' '}
@@ -187,6 +193,43 @@ export default async function OrderStatusPage({
       />
     </CheckoutShell>
   );
+}
+
+/**
+ * The post-purchase offer for this order, or null. Only after the buyer has
+ * paid or reported paying, only on a plan with offers, and never for the
+ * product they just bought.
+ */
+async function upsellFor(
+  order: { status: OrderStatus; productId: string; nonce: string },
+  ctx: Awaited<ReturnType<typeof loadMerchantContext>>,
+): Promise<UpsellOffer | null> {
+  if (order.status !== 'PAID' && order.status !== 'AWAITING_VERIFICATION') return null;
+  if (!entitlementsFor(ctx.account).offers) return null;
+
+  const settings = parseUpsell(ctx.profile.upsell);
+  if (!settings.enabled || !settings.productId || settings.productId === order.productId) return null;
+
+  const product = await prisma.product.findFirst({
+    where: { id: settings.productId, accountId: ctx.account.id, active: true },
+  });
+  if (!product) return null;
+
+  return {
+    headline: settings.headline,
+    title: settings.title || product.name,
+    description: settings.description,
+    imageUrl: settings.imageUrl || product.imageUrl || '',
+    price: formatMoney(product.priceCents, product.currency),
+    originalPrice:
+      settings.originalPriceCents > product.priceCents
+        ? formatMoney(settings.originalPriceCents, product.currency)
+        : null,
+    acceptLabel: settings.acceptLabel,
+    declineLabel: settings.declineLabel,
+    // The checkout prefills name and email from this order, found by nonce.
+    href: `/c/${ctx.account.slug}/${product.slug}?from=${order.nonce}`,
+  };
 }
 
 function Row({ label, value }: { label: string; value: string }) {

@@ -466,6 +466,74 @@ textarea.mp-input { resize: vertical; min-height: 78px; }
 .mp-foot a:hover { color: var(--mp-text-muted); }
 .mp-foot-links { display: flex; gap: 14px; }
 
+/* ---------------------------------------------------------------- order bump */
+
+.mp-bump {
+  border: 2px dashed color-mix(in srgb, var(--mp-primary) 55%, transparent);
+  border-radius: var(--mp-radius-sm);
+  background: color-mix(in srgb, var(--mp-primary) 6%, transparent);
+  overflow: hidden;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.mp-bump--on {
+  border-style: solid;
+  border-color: var(--mp-primary);
+  background: color-mix(in srgb, var(--mp-primary) 11%, transparent);
+}
+.mp-bump-head {
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--mp-primary-contrast);
+  background: var(--mp-primary);
+}
+.mp-bump-box { display: flex; gap: 12px; align-items: flex-start; padding: 14px; cursor: pointer; }
+.mp-bump-check { margin-top: 3px; width: 18px; height: 18px; flex: 0 0 auto; accent-color: var(--mp-primary); cursor: pointer; }
+.mp-bump-img { width: 56px; height: 56px; flex: 0 0 auto; object-fit: cover; border-radius: 8px; }
+.mp-bump-text { display: grid; gap: 4px; min-width: 0; }
+.mp-bump-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
+.mp-bump-badge {
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  border-radius: 999px;
+  color: var(--mp-primary-contrast);
+  background: var(--mp-primary);
+}
+.mp-bump-desc { font-size: 12.5px; line-height: 1.55; color: var(--mp-text-muted); }
+.mp-bump-price { display: flex; gap: 8px; align-items: baseline; font-size: 14px; }
+.mp-bump-price s { color: var(--mp-text-faint); font-size: 12.5px; }
+.mp-bump-price strong { color: var(--mp-primary); }
+
+/* ---------------------------------------------------------------- upsell */
+
+.mp-upsell {
+  margin-top: 18px;
+  border: 1px solid color-mix(in srgb, var(--mp-primary) 45%, var(--mp-border));
+  border-radius: var(--mp-radius-sm);
+  overflow: hidden;
+}
+.mp-upsell-head {
+  margin: 0;
+  padding: 9px 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--mp-primary-contrast);
+  background: var(--mp-primary);
+}
+.mp-upsell-body { display: flex; gap: 14px; padding: 16px; }
+.mp-upsell-img { width: 72px; height: 72px; flex: 0 0 auto; object-fit: cover; border-radius: 10px; }
+.mp-upsell-title { margin: 0; font-size: 16px; font-weight: 700; }
+.mp-upsell-desc { margin: 5px 0 0; font-size: 13px; line-height: 1.6; color: var(--mp-text-muted); }
+.mp-upsell-price { margin: 7px 0 0; display: flex; gap: 8px; align-items: baseline; }
+.mp-upsell-price s { font-size: 13px; color: var(--mp-text-faint); }
+.mp-upsell-price strong { font-size: 17px; color: var(--mp-primary); }
+.mp-upsell-actions { display: grid; gap: 8px; padding: 0 16px 16px; }
+.mp-upsell-note { margin: 0; padding: 0 16px 14px; font-size: 11.5px; line-height: 1.55; color: var(--mp-text-faint); }
+
 /* ---------------------------------------------------------------- payment confirmation */
 
 .mp-confirm {

@@ -13,6 +13,18 @@ export type CheckoutFormProps = {
   fieldVisibility: Record<string, string>;
   customFields: { label: string; type: string; required: boolean; options: string[] }[];
   requiresShipping: boolean;
+  /** One-click add-on above the pay button; null when off. */
+  bump?: {
+    headline: string;
+    title: string;
+    description: string;
+    priceCents: number;
+    originalPriceCents: number;
+    imageUrl: string;
+    badge: string;
+  } | null;
+  /** Name and email carried over from an upsell. */
+  prefill?: { name: string; email: string } | null;
   guarantee: { title: string; text: string; days: number } | null;
   renewalOfRef?: string;
   /**
@@ -67,6 +79,8 @@ export function CheckoutForm(props: CheckoutFormProps) {
     customFields,
     requiresShipping,
     renewalOfRef,
+    bump = null,
+    prefill = null,
     methodsFirst = false,
     tiles = false,
     compactTotals = false,
@@ -85,9 +99,12 @@ export function CheckoutForm(props: CheckoutFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [handoff, setHandoff] = useState<Handoff | null>(null);
+  const [bumpOn, setBumpOn] = useState(false);
 
   const selected = useMemo(() => methods.find((m) => m.key === method) ?? null, [methods, method]);
-  const total = Math.max(0, priceCents - totals.discountCents);
+  const bumpCents = bump && bumpOn ? bump.priceCents : 0;
+  // Coupons apply to the product only, never to the add-on.
+  const total = Math.max(0, priceCents - totals.discountCents) + bumpCents;
 
   // Physical goods need somewhere to go, whatever the merchant chose to ask
   // for. Shipping beats the field-visibility setting rather than the reverse.
@@ -150,6 +167,7 @@ export function CheckoutForm(props: CheckoutFormProps) {
     });
     if (totals.couponLabel) payload.couponCode = coupon.trim();
     if (renewalOfRef) payload.renewalOfRef = renewalOfRef;
+    if (bump && bumpOn) payload.orderBump = true;
 
     try {
       const res = await fetch('/api/checkout', {
@@ -203,8 +221,15 @@ export function CheckoutForm(props: CheckoutFormProps) {
       <legend className="mp-legend">Your details</legend>
       <div className="mp-fields">
         <div className="mp-fields mp-fields--2">
-          <Input name="buyerName" label="Full name" required autoComplete="name" />
-          <Input name="buyerEmail" label="Email" type="email" required autoComplete="email" />
+          <Input name="buyerName" label="Full name" required autoComplete="name" defaultValue={prefill?.name} />
+          <Input
+            name="buyerEmail"
+            label="Email"
+            type="email"
+            required
+            autoComplete="email"
+            defaultValue={prefill?.email}
+          />
         </div>
 
         {BUYER_FIELDS.filter((f) => visibility[f.key] && visibility[f.key] !== 'hidden').map(
@@ -377,6 +402,37 @@ export function CheckoutForm(props: CheckoutFormProps) {
         {methodsFirst ? payment : details}
         {methodsFirst ? details : payment}
 
+        {bump ? (
+          <div className={`mp-bump${bumpOn ? ' mp-bump--on' : ''}`}>
+            {bump.headline ? <p className="mp-bump-head">{bump.headline}</p> : null}
+            <label className="mp-bump-box">
+              <input
+                type="checkbox"
+                checked={bumpOn}
+                onChange={(e) => setBumpOn(e.target.checked)}
+                className="mp-bump-check"
+              />
+              {bump.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- merchant-hosted image
+                <img src={bump.imageUrl} alt="" className="mp-bump-img" loading="lazy" />
+              ) : null}
+              <span className="mp-bump-text">
+                <span className="mp-bump-title">
+                  {bump.title}
+                  {bump.badge ? <span className="mp-bump-badge">{bump.badge}</span> : null}
+                </span>
+                {bump.description ? <span className="mp-bump-desc">{bump.description}</span> : null}
+                <span className="mp-bump-price">
+                  {bump.originalPriceCents > bump.priceCents ? (
+                    <s>{money(bump.originalPriceCents, currency)}</s>
+                  ) : null}
+                  <strong>+{money(bump.priceCents, currency)}</strong>
+                </span>
+              </span>
+            </label>
+          </div>
+        ) : null}
+
         <div className="mp-panel">
             <div className="mp-coupon">
               <input
@@ -413,6 +469,12 @@ export function CheckoutForm(props: CheckoutFormProps) {
                   <dd>{money(priceCents, currency)}</dd>
                 </div>
               )}
+              {bumpCents > 0 && bump ? (
+                <div className="mp-totals-row">
+                  <dt>{bump.title}</dt>
+                  <dd>+ {money(bumpCents, currency)}</dd>
+                </div>
+              ) : null}
               {totals.discountCents > 0 ? (
                 <div className="mp-totals-row mp-totals-row--off">
                   <dt>Discount</dt>
@@ -583,12 +645,14 @@ function Input({
   type = 'text',
   required = false,
   autoComplete,
+  defaultValue,
 }: {
   name: string;
   label: string;
   type?: string;
   required?: boolean;
   autoComplete?: string;
+  defaultValue?: string;
 }) {
   if (type === 'textarea') {
     return (
@@ -605,6 +669,7 @@ function Input({
         type={type}
         required={required}
         autoComplete={autoComplete}
+        defaultValue={defaultValue}
         className="mp-input"
       />
     </Field>

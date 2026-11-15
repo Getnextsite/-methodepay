@@ -20,6 +20,7 @@ const GROUPS: { heading: string; items: { href: string; label: string; badgeKey?
       { href: '/dashboard/methods', label: 'Payment methods' },
       { href: '/dashboard/wallets', label: 'Wallets' },
       { href: '/dashboard/design', label: 'Checkout design' },
+      { href: '/dashboard/offers', label: 'Order bump & upsell' },
     ],
   },
   {

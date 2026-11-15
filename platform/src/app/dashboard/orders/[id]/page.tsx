@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { requireTenant } from '@/lib/tenancy';
 import { prisma } from '@/lib/db';
 import { formatMoney } from '@/lib/money';
+import { orderBumpOf } from '@/lib/offers';
 import { prettyMethod } from '@/lib/notifier';
 import { CARRIERS, trackingUrl } from '@/lib/shipping';
 import { Field, PageHeader, Section, StatusBadge } from '@/components/ui';
@@ -33,7 +34,8 @@ export default async function OrderPage({ params }: { params: { id: string } }) 
   });
   if (!order) notFound();
 
-  const subtotal = order.amountCents + order.discountCents - order.shippingCents;
+  const bump = orderBumpOf(order.meta);
+  const subtotal = order.amountCents + order.discountCents - order.shippingCents - (bump?.amountCents ?? 0);
   const tracking = trackingUrl(order.trackingCarrier, order.trackingNumber);
   const customFields = readCustomFields(order.meta);
 
@@ -50,6 +52,9 @@ export default async function OrderPage({ params }: { params: { id: string } }) 
           <Section title="Amount">
             <dl className="space-y-2 text-sm">
               <Row label="Subtotal" value={formatMoney(subtotal, order.currency)} />
+              {bump ? (
+                <Row label={`Order bump: ${bump.title}`} value={`+ ${formatMoney(bump.amountCents, order.currency)}`} />
+              ) : null}
               {order.discountCents > 0 ? (
                 <Row
                   label={`Discount${order.couponCode ? ` (${order.couponCode})` : ''}`}
