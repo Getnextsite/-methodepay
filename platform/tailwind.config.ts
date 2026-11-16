@@ -6,22 +6,24 @@ const config: Config = {
     extend: {
       colors: {
         ink: {
-          950: '#07080f',
-          900: '#0a0e1a',
-          850: '#0e1220',
-          800: '#10131c',
-          700: '#171b28',
-          600: '#222738',
-          500: '#323850',
-          400: '#6b7391',
-          300: '#9aa2bd',
-          200: '#c3c9dd',
-          100: '#e8ecf7',
+          950: 'rgb(var(--ink-950) / <alpha-value>)',
+          900: 'rgb(var(--ink-900) / <alpha-value>)',
+          850: 'rgb(var(--ink-850) / <alpha-value>)',
+          800: 'rgb(var(--ink-800) / <alpha-value>)',
+          700: 'rgb(var(--ink-700) / <alpha-value>)',
+          600: 'rgb(var(--ink-600) / <alpha-value>)',
+          500: 'rgb(var(--ink-500) / <alpha-value>)',
+          400: 'rgb(var(--ink-400) / <alpha-value>)',
+          300: 'rgb(var(--ink-300) / <alpha-value>)',
+          200: 'rgb(var(--ink-200) / <alpha-value>)',
+          100: 'rgb(var(--ink-100) / <alpha-value>)',
         },
         mint: {
-          DEFAULT: '#00ffa3',
-          dim: '#00cc83',
+          DEFAULT: 'rgb(var(--mint) / <alpha-value>)',
+          dim: 'rgb(var(--mint-dim) / <alpha-value>)',
         },
+        // Headings and strong text. White on the dark theme, near-black on the light one.
+        white: 'rgb(var(--strong) / <alpha-value>)',
         violet: { DEFAULT: '#7c5cff' },
       },
       fontFamily: {
@@ -29,7 +31,7 @@ const config: Config = {
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       boxShadow: {
-        card: '0 1px 0 0 rgba(255,255,255,.04) inset, 0 20px 60px -20px rgba(0,0,0,.6)',
+        card: 'var(--card-shadow)',
       },
     },
   },

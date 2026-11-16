@@ -103,7 +103,7 @@ export default async function WalletsPage() {
                     <summary className="flex cursor-pointer list-none items-center gap-3 px-3.5 py-3 [&::-webkit-details-marker]:hidden">
                       <span
                         aria-hidden
-                        className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold text-white"
+                        className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold text-[#fff]"
                         style={{ background: info?.color ?? '#64748b' }}
                       >
                         {info?.glyph ?? symbol.slice(0, 1)}

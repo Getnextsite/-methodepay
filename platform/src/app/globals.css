@@ -2,8 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Two themes from one set of class names. Colours are RGB triplets so Tailwind
+ * opacity modifiers (bg-ink-800/60) keep working. The dark theme is the
+ * default (sign-in, onboarding); the dashboard opts into the light, glassy
+ * theme with `.theme-light` on its root.
+ */
 :root {
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --ink-950: 7 8 15;
+  --ink-900: 10 14 26;
+  --ink-850: 14 18 32;
+  --ink-800: 16 19 28;
+  --ink-700: 23 27 40;
+  --ink-600: 34 39 56;
+  --ink-500: 50 56 80;
+  --ink-400: 107 115 145;
+  --ink-300: 154 162 189;
+  --ink-200: 195 201 221;
+  --ink-100: 232 236 247;
+  --mint: 0 255 163;
+  --mint-dim: 0 204 131;
+  --strong: 255 255 255;
+  --card-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.04) inset, 0 20px 60px -20px rgba(0, 0, 0, 0.6);
+}
+
+.theme-light {
+  color-scheme: light;
+  --ink-950: 244 247 250;
+  --ink-900: 248 250 251;
+  --ink-850: 241 244 247;
+  --ink-800: 255 255 255;
+  --ink-700: 236 241 244;
+  --ink-600: 221 228 234;
+  --ink-500: 197 206 214;
+  --ink-400: 116 129 141;
+  --ink-300: 82 95 107;
+  --ink-200: 55 68 80;
+  --ink-100: 26 38 48;
+  --mint: 15 138 95;
+  --mint-dim: 11 110 76;
+  --strong: 14 30 27;
+  --brand: #0f3b33;
+  --card-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.9) inset, 0 18px 40px -26px rgba(16, 42, 60, 0.35);
+  color: rgb(var(--ink-100));
 }
 
 @layer base {
@@ -13,7 +56,6 @@
 
   body {
     @apply bg-ink-950 text-ink-100 antialiased;
-    color: #e8ecf7;
   }
 
   /* A focus ring you can actually see, on every interactive thing. */
@@ -71,6 +113,65 @@
     @apply px-4 py-3 text-sm text-ink-100;
   }
 }
+
+/* ---------------------------------------------------------------- light, glassy dashboard */
+
+body:has(.theme-light) { background: #eef3f6; }
+
+.theme-light.dash-sky {
+  background:
+    radial-gradient(60% 45% at 18% 8%, rgba(255, 255, 255, 0.95), transparent 70%),
+    radial-gradient(45% 35% at 72% 4%, rgba(255, 255, 255, 0.85), transparent 72%),
+    radial-gradient(40% 30% at 92% 30%, rgba(255, 255, 255, 0.7), transparent 70%),
+    radial-gradient(55% 40% at 40% 26%, rgba(214, 233, 246, 0.9), transparent 75%),
+    linear-gradient(180deg, #bcd9ee 0%, #d9eaf5 380px, #eaf2f7 760px, #eef3f6 1100px);
+  background-color: #eef3f6;
+  background-repeat: no-repeat;
+  background-size: 100% 1400px;
+}
+
+.theme-light .card,
+.theme-light .glass {
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: var(--card-shadow);
+}
+.theme-light .card { border-radius: 22px; }
+
+.theme-light .input {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgb(var(--ink-600));
+}
+.theme-light .input:focus { background: #fff; border-color: rgb(var(--mint) / 0.6); }
+
+.theme-light .btn-primary {
+  background: var(--brand);
+  color: #fff;
+  border-radius: 999px;
+}
+.theme-light .btn-primary:hover { background: #164f44; }
+.theme-light .btn-ghost {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 6px 18px -14px rgba(16, 42, 60, 0.5);
+  border-radius: 999px;
+}
+.theme-light .btn-ghost:hover { background: #fff; border-color: rgb(var(--ink-500)); }
+.theme-light .btn-danger { color: #b42318; border-radius: 999px; }
+.theme-light .chip { background: rgba(255, 255, 255, 0.75); }
+
+/* Tones written for the dark theme, re-stepped so they still read on white. */
+.theme-light .text-amber-100,
+.theme-light .text-amber-200,
+.theme-light .text-amber-300 { color: #9a5b06; }
+.theme-light .text-red-300,
+.theme-light .text-red-200 { color: #b42318; }
+.theme-light .text-\[\#b9a8ff\] { color: #5b3fd0; }
+.theme-light .text-\[\#06240f\] { color: #fff; }
+.theme-light .bg-mint.text-\[\#06240f\] { background: var(--brand); }
+.theme-light .fill-ink-400 { fill: rgb(var(--ink-400)); }
 
 /* Reduced motion is a setting, not a suggestion. */
 @media (prefers-reduced-motion: reduce) {

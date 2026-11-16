@@ -44,7 +44,7 @@ export function AddWalletForm({ catalog, saved }: { catalog: CatalogCoin[]; save
               />
               <span
                 aria-hidden
-                className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white"
+                className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold text-[#fff]"
                 style={{ background: c.color }}
               >
                 {c.glyph}
@@ -70,7 +70,7 @@ export function AddWalletForm({ catalog, saved }: { catalog: CatalogCoin[]; save
               onChange={() => setSymbol('__other')}
               className="sr-only"
             />
-            <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-ink-600 text-[11px] font-bold text-white">
+            <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-ink-500 text-[11px] font-bold text-[#fff]">
               +
             </span>
             <span className="font-semibold">Other</span>
