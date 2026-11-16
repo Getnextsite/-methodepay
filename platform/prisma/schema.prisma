@@ -411,6 +411,10 @@ model NotificationSettings {
   invoice     Json @default("{}")
   // Automatic on-chain verification of crypto payments: { enabled, mode }
   chainVerify Json @default("{}")
+  // Fraud screening: { enabled, blockHigh, mediumAt, highAt, velocityPerHour, maxAmountCents, blockedCountries, blocklist }
+  fraud       Json @default("{}")
+  // Provider monitoring: { alerts, checkedAt, results: { [method]: { status, message, latencyMs, checkedAt } } }
+  monitor     Json @default("{}")
 
   // Renewal reminders
   renewalsEnabled     Boolean @default(false)
@@ -489,6 +493,11 @@ model Order {
 
   meta Json @default("{}")
 
+  // Fraud screening at checkout. Null = not assessed (older orders).
+  riskScore Int?
+  riskLevel String?
+  buyerIp   String?
+
   expiresAt        DateTime?
   deliveredAt      DateTime?
   serviceExpiresAt DateTime?
@@ -515,6 +524,7 @@ model Order {
   @@index([productId])
   @@index([serviceExpiresAt])
   @@index([buyerEmail])
+  @@index([accountId, riskLevel])
   @@map("orders")
 }
 
@@ -545,6 +555,12 @@ model WebhookEndpoint {
   secret    String
   events    String[] @default([])
   active    Boolean  @default(true)
+  description    String?
+  // Consecutive failed attempts; the endpoint is paused when this gets too high.
+  failureStreak  Int       @default(0)
+  disabledReason String?
+  lastSuccessAt  DateTime?
+  lastFailureAt  DateTime?
   createdAt DateTime @default(now())
 
   account    Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
@@ -563,12 +579,39 @@ model WebhookDelivery {
   responseCode Int?
   attempts     Int      @default(0)
   lastError    String?  @db.Text
+  // Retry bookkeeping: when the next attempt is due (null = nothing scheduled).
+  nextAttemptAt DateTime?
+  lastAttemptAt DateTime?
+  deliveredAt   DateTime?
+  durationMs    Int?
+  responseBody  String?  @db.Text
   createdAt    DateTime @default(now())
 
   endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
 
   @@index([endpointId])
+  @@index([status, nextAttemptAt])
   @@map("webhook_deliveries")
+}
+
+// Checkouts refused by fraud screening. No order is created for them, so this
+// is the only trace a merchant has of who was turned away and why.
+model BlockedCheckout {
+  id        String   @id @default(cuid())
+  accountId String
+  productId String?
+  email     String
+  ip        String?
+  country   String?
+  ipCountry String?
+  amountCents Int    @default(0)
+  currency  String   @default("USD")
+  score     Int      @default(0)
+  reasons   Json     @default("[]")
+  createdAt DateTime @default(now())
+
+  @@index([accountId, createdAt])
+  @@map("blocked_checkouts")
 }
 
 // Idempotency guard for inbound provider callbacks. A provider that retries a

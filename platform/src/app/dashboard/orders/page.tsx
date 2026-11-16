@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db';
 import { formatMoney } from '@/lib/money';
 import { prettyMethod } from '@/lib/notifier';
 import { EmptyState, PageHeader, Section, StatusBadge } from '@/components/ui';
+import { RiskBadge } from '@/components/risk-badge';
 
 export const metadata: Metadata = { title: 'Orders' };
 
@@ -23,17 +24,19 @@ const FILTERS: { label: string; status?: OrderStatus }[] = [
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: { status?: string; q?: string; page?: string };
+  searchParams: { status?: string; q?: string; page?: string; risk?: string };
 }) {
   const { account } = await requireTenant();
 
   const status = FILTERS.find((f) => f.status === searchParams.status)?.status;
   const query = (searchParams.q ?? '').trim();
   const page = Math.max(1, Number(searchParams.page ?? 1) || 1);
+  const flagged = searchParams.risk === 'flagged';
 
   const where: Prisma.OrderWhereInput = {
     accountId: account.id,
     ...(status ? { status } : {}),
+    ...(flagged ? { riskLevel: { in: ['medium', 'high'] } } : {}),
     ...(query
       ? {
           OR: [
@@ -62,7 +65,7 @@ export default async function OrdersPage({
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
   const base = (overrides: Record<string, string | undefined>) => {
     const params = new URLSearchParams();
-    const merged = { status: searchParams.status, q: query || undefined, ...overrides };
+    const merged = { status: searchParams.status, q: query || undefined, risk: flagged ? 'flagged' : undefined, ...overrides };
     for (const [key, value] of Object.entries(merged)) if (value) params.set(key, value);
     const qs = params.toString();
     return `/dashboard/orders${qs ? `?${qs}` : ''}`;
@@ -93,6 +96,16 @@ export default async function OrdersPage({
             </Link>
           );
         })}
+
+        <Link
+          href={base({ risk: flagged ? undefined : 'flagged', page: undefined })}
+          aria-current={flagged ? 'true' : undefined}
+          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+            flagged ? 'border-red-400/50 bg-red-400/10 text-red-300' : 'border-ink-600 bg-ink-800/60 text-ink-300 hover:text-white'
+          }`}
+        >
+          Flagged risk
+        </Link>
 
         <form action="/dashboard/orders" className="ml-auto flex gap-2">
           {searchParams.status ? (
@@ -165,7 +178,10 @@ export default async function OrdersPage({
                       {formatMoney(order.amountCents, order.currency)}
                     </td>
                     <td className="table-cell">
-                      <StatusBadge status={order.status} />
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <StatusBadge status={order.status} />
+                        <RiskBadge level={order.riskLevel} hideLow />
+                      </span>
                     </td>
                     <td className="table-cell text-xs text-ink-400">
                       {order.createdAt.toISOString().slice(0, 16).replace('T', ' ')}

@@ -11,6 +11,7 @@ import { quoteShipping, reduceStock, restoreStock } from './shipping';
 import { encryptSecret } from './crypto';
 import { entitlementsFor } from './entitlements';
 import { activeBump } from './offers';
+import { flagReusedReference } from './fraud/assess';
 
 export type CreateOrderInput = {
   accountId: string;
@@ -34,6 +35,10 @@ export type CreateOrderInput = {
   renewalOfId?: string;
   /** The buyer ticked the order bump. The price comes from settings, not from here. */
   orderBump?: boolean;
+  /** Fraud screening result, stored on the order for the merchant to see. */
+  risk?: { score: number; level: string; reasons: { code: string; points: number; label: string }[] } | null;
+  buyerIp?: string | null;
+  ipCountry?: string | null;
 };
 
 /**
@@ -106,9 +111,13 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       giftCardCountry: input.giftCardCountry?.trim().toUpperCase() || null,
       // A pending order should not hold stock or a quote for ever.
       expiresAt: new Date(Date.now() + 24 * 3600_000),
+      riskScore: input.risk ? input.risk.score : null,
+      riskLevel: input.risk ? input.risk.level : null,
+      buyerIp: input.buyerIp ?? null,
       meta: {
         customFields: input.customFields ?? {},
         ...(bump ? { orderBump: { title: bump.title, amountCents: bumpCents } } : {}),
+        ...(input.risk ? { risk: { reasons: input.risk.reasons, ipCountry: input.ipCountry ?? null } } : {}),
       },
       events: {
         create: {
@@ -257,6 +266,7 @@ export async function claimPayment(
       meta: { reference: input.reference ?? null, channel: input.channel ?? null },
     },
   });
+  if (input.reference) await flagReusedReference(orderId).catch(() => false);
 
   const ctx = await loadMerchantContext(order.accountId);
   await dispatchWebhook(

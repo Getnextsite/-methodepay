@@ -4,10 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { requireTenant, assertRole, ForbiddenError } from '@/lib/tenancy';
 import { prisma } from '@/lib/db';
 import { mintApiKey } from '@/lib/api-keys';
-import { randomToken } from '@/lib/crypto';
 import { entitlementsFor } from '@/lib/entitlements';
 import { env } from '@/lib/env';
-import { WEBHOOK_EVENTS } from '@/lib/webhooks';
 import { Banner, CopyBox, Field, PageHeader, Section } from '@/components/ui';
 import { ActionForm, SubmitButton, type ActionState } from '@/components/action-form';
 
@@ -55,68 +53,16 @@ async function revokeKeyAction(_prev: ActionState, formData: FormData): Promise<
   return { message: 'Key revoked. Any call using it now fails.' };
 }
 
-async function saveWebhookAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  'use server';
-  try {
-    const tenant = await requireTenant();
-    assertRole(tenant, 'ADMIN');
-    const ent = entitlementsFor(tenant.account);
-    if (!ent.webhooks) {
-      return { error: `Webhooks are part of the Professional plan. Your store is on ${ent.label}.` };
-    }
-
-    const url = String(formData.get('url') ?? '').trim();
-    if (!/^https:\/\//.test(url)) {
-      return { error: 'Use an https endpoint — we will not post order data over plain http.' };
-    }
-
-    const events = formData.getAll('events').map(String).filter((e) => WEBHOOK_EVENTS.includes(e as never));
-
-    await prisma.webhookEndpoint.create({
-      data: { accountId: tenant.account.id, url, secret: randomToken(24), events },
-    });
-  } catch (error) {
-    if (error instanceof ForbiddenError) return { error: error.message };
-    throw error;
-  }
-  revalidatePath('/dashboard/developers');
-  return { message: 'Endpoint added.' };
-}
-
-async function deleteWebhookAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  'use server';
-  try {
-    const tenant = await requireTenant();
-    assertRole(tenant, 'ADMIN');
-    await prisma.webhookEndpoint.deleteMany({
-      where: { id: String(formData.get('id') ?? ''), accountId: tenant.account.id },
-    });
-  } catch (error) {
-    if (error instanceof ForbiddenError) return { error: error.message };
-    throw error;
-  }
-  revalidatePath('/dashboard/developers');
-  return { message: 'Endpoint removed.' };
-}
-
 export default async function DevelopersPage() {
   const { account, role } = await requireTenant();
   const ent = entitlementsFor(account);
 
-  const [keys, endpoints, deliveries] = await Promise.all([
+  const [keys, endpointCount] = await Promise.all([
     prisma.apiKey.findMany({
       where: { accountId: account.id },
       orderBy: { createdAt: 'desc' },
     }),
-    prisma.webhookEndpoint.findMany({
-      where: { accountId: account.id },
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.webhookDelivery.findMany({
-      where: { endpoint: { accountId: account.id } },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    }),
+    prisma.webhookEndpoint.count({ where: { accountId: account.id } }),
   ]);
 
   return (
@@ -214,88 +160,28 @@ export default async function DevelopersPage() {
 
         <Section
           title="Webhooks"
-          description="Signed the way Stripe signs theirs: MethodePay-Signature: t=…,v1=HMAC-SHA256 over timestamp.body, so a captured payload cannot be replayed later."
+          description="Signed notifications to your systems, with automatic retries, a delivery log and test events."
         >
-          <ActionForm action={saveWebhookAction} className="space-y-4">
-            <Field label="Endpoint URL" htmlFor="url" hint="https only.">
-              <input
-                id="url"
-                name="url"
-                type="url"
-                className="input"
-                placeholder="https://your-app.example.com/hooks/methodepay"
-              />
-            </Field>
-            <fieldset>
-              <legend className="label">Events</legend>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {WEBHOOK_EVENTS.map((event) => (
-                  <label key={event} className="flex items-center gap-2.5 text-xs text-ink-200">
-                    <input type="checkbox" name="events" value={event} className="h-4 w-4 accent-mint" />
-                    <code>{event}</code>
-                  </label>
-                ))}
-              </div>
-              <p className="mt-2 text-xs text-ink-400">Select none to receive everything.</p>
-            </fieldset>
-            <SubmitButton variant="ghost">Add endpoint</SubmitButton>
-          </ActionForm>
-
-          {endpoints.length > 0 ? (
-            <ul className="mt-5 space-y-2.5 border-t border-ink-600/70 pt-5">
-              {endpoints.map((endpoint) => (
-                <li key={endpoint.id} className="rounded-xl border border-ink-600/70 bg-ink-900/40 p-3.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-mono text-xs text-white">{endpoint.url}</p>
-                      <p className="mt-1 text-xs text-ink-400">
-                        {endpoint.events.length === 0 ? 'all events' : endpoint.events.join(', ')}
-                      </p>
-                    </div>
-                    <ActionForm action={deleteWebhookAction} className="shrink-0">
-                      <input type="hidden" name="id" value={endpoint.id} />
-                      <SubmitButton variant="danger" className="!px-2.5 !py-1.5 !text-xs" confirm="Remove this endpoint?">
-                        Remove
-                      </SubmitButton>
-                    </ActionForm>
-                  </div>
-                  <div className="mt-3">
-                    <CopyBox label="Signing secret" value={endpoint.secret} />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-ink-300">
+              {endpointCount === 0
+                ? 'No endpoint yet.'
+                : `${endpointCount} endpoint${endpointCount === 1 ? '' : 's'} configured.`}
+            </p>
+            <Link href="/dashboard/webhooks" className="btn-ghost !py-2 !text-xs">
+              Open the webhook center
+            </Link>
+          </div>
         </Section>
-
-        {deliveries.length > 0 ? (
-          <Section title="Recent deliveries">
-            <ul className="space-y-1.5 text-xs">
-              {deliveries.map((delivery) => (
-                <li key={delivery.id} className="flex items-center justify-between gap-3">
-                  <code className="text-ink-200">{delivery.event}</code>
-                  <span className="text-ink-400">
-                    {delivery.createdAt.toISOString().slice(5, 16).replace('T', ' ')}
-                  </span>
-                  <span
-                    className={
-                      delivery.status === 'delivered' ? 'text-mint' : 'text-red-300'
-                    }
-                  >
-                    {delivery.status}
-                    {delivery.responseCode ? ` ${delivery.responseCode}` : ''}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Section>
-        ) : null}
 
         <Section
           title="Scheduled jobs"
-          description="Renewal reminders and expiry sweeps run when this endpoint is called. Point a cron service at it once a day."
+          description="Renewal reminders, abandoned checkout emails, crypto re-checks, webhook retries and provider checks run when these are called. Vercel calls them daily; an external cron calling the sweep every 5 to 15 minutes makes retries and alerts faster."
         >
-          <CopyBox value={`POST ${env.appUrl}/api/cron/renewals`} />
+          <div className="space-y-2">
+            <CopyBox value={`POST ${env.appUrl}/api/cron/sweep`} />
+            <CopyBox value={`POST ${env.appUrl}/api/cron/renewals`} />
+          </div>
           <p className="mt-3 text-xs text-ink-400">
             Authenticate with <code className="text-mint">Authorization: Bearer $CRON_SECRET</code>,
             set in the deployment environment.

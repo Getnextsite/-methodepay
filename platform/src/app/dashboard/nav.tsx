@@ -16,6 +16,14 @@ const GROUPS: { heading: string; items: { href: string; label: string; badgeKey?
     ],
   },
   {
+    heading: 'Insights',
+    items: [
+      { href: '/dashboard/reports', label: 'Financial reports' },
+      { href: '/dashboard/fraud', label: 'Fraud & risk' },
+      { href: '/dashboard/monitoring', label: 'Provider status' },
+    ],
+  },
+  {
     heading: 'Checkout',
     items: [
       { href: '/dashboard/methods', label: 'Payment methods' },
@@ -28,6 +36,7 @@ const GROUPS: { heading: string; items: { href: string; label: string; badgeKey?
     heading: 'Account',
     items: [
       { href: '/dashboard/notifications', label: 'Notifications' },
+      { href: '/dashboard/webhooks', label: 'Webhooks' },
       { href: '/dashboard/developers', label: 'Developers' },
       { href: '/dashboard/team', label: 'Team' },
       { href: '/dashboard/billing', label: 'Plan & billing' },

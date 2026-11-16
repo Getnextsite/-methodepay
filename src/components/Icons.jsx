@@ -151,3 +151,21 @@ export const Copy = make(
     <path d="M15 6.5A2.5 2.5 0 0 0 12.5 4h-6A2.5 2.5 0 0 0 4 6.5v6A2.5 2.5 0 0 0 6.5 15" />
   </>,
 )
+
+export const Chart = make(
+  <>
+    <path d="M4 20V4" />
+    <path d="M4 20h16" />
+    <path d="M8 16v-4M12 16V8M16 16v-6M20 16v-9" />
+  </>,
+)
+
+export const Pulse = make(<path d="M3 12h4l2.5-6 4 12 2.5-6H21" />)
+
+export const Radar = make(
+  <>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 12 18 6" />
+    <circle cx="12" cy="12" r="3" />
+  </>,
+)

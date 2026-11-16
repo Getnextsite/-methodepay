@@ -357,3 +357,26 @@ ${
     fromName: storeName,
   });
 }
+
+/**
+ * A plain operational alert to the merchant (a provider went down, an
+ * endpoint was paused). Same recipients as new-order mail, plus Telegram.
+ */
+export async function notifyMerchantAlert(
+  ctx: MerchantContext,
+  subject: string,
+  lines: string[],
+  link?: { href: string; label: string },
+): Promise<boolean> {
+  const recipients = [...new Set([...ctx.notifications.notifyEmails, ctx.notifications.supportEmail].filter(Boolean))];
+  const body = `<h2 style="margin:0 0 10px;font-size:18px">${escapeHtml(subject)}</h2>
+${lines.map((l) => `<p style="margin:0 0 8px;color:#c7cde0;font-size:14px;line-height:1.6">${escapeHtml(l)}</p>`).join('\n')}
+${
+  link
+    ? `<p style="margin:18px 0 0"><a href="${link.href}" style="background:#00ffa3;color:#06240f;padding:10px 16px;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px">${escapeHtml(link.label)}</a></p>`
+    : ''
+}`;
+  const emailed = await Promise.all(recipients.map((to) => sendEmail({ to, subject, html: shell(body) })));
+  const telegram = await sendTelegram(ctx, [`<b>${escapeHtml(subject)}</b>`, ...lines.map(escapeHtml)].join('\n'));
+  return emailed.some(Boolean) || telegram;
+}

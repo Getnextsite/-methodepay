@@ -102,6 +102,21 @@ export const homeFeatures = [
     title: 'Customer portal & invoices',
     body: 'Every buyer gets a page with their orders, downloads, renewals and printable receipts. Far fewer “where is my order?” messages.',
   },
+  {
+    icon: 'Chart',
+    title: 'Financial reports',
+    body: 'Gross, refunds, net, average order and checkout conversion for any period, compared with the one before. Broken down by method, product and country, and exported to CSV.',
+  },
+  {
+    icon: 'Radar',
+    title: 'Fraud screening',
+    body: 'Every checkout is scored before the order exists: throwaway emails, bursts from one IP, country mismatches, reused bank references. Flag it for review or refuse it outright.',
+  },
+  {
+    icon: 'Pulse',
+    title: 'Provider monitoring & webhooks',
+    body: 'Know the moment Stripe rejects your key or a rail stops opening, before buyers tell you. Signed webhooks retry for a day until your server answers.',
+  },
 ]
 
 export const featureGroups = [
@@ -222,6 +237,14 @@ export const featureGroups = [
         body: 'Unpaid checkouts get one reminder email after the delay you choose, linking back with the buyer’s details and your discount code already applied.',
       },
       {
+        title: 'Webhooks that do not get lost',
+        body: 'Signed like Stripe’s, retried six times over a day when your server is down, with a full delivery log, the reply your server gave, a test button and one-click resend.',
+      },
+      {
+        title: 'Provider monitoring',
+        body: 'Each switched-on rail is checked with your own credentials and against real checkouts from the last 24 hours. An email or Telegram message when one goes down, and another when it is back.',
+      },
+      {
         title: 'Code pools you control',
         body: 'Upload codes in bulk, watch them drain in the dashboard, and get warned before the pool runs dry mid-campaign.',
       },
@@ -266,6 +289,14 @@ export const featureGroups = [
       {
         title: 'Confirmation channels you choose',
         body: 'Let buyers confirm a manual payment by WhatsApp (with QR), by email, or with a transaction ID. Any combination, every message carrying the order reference.',
+      },
+      {
+        title: 'Financial reports',
+        body: 'Revenue counted on the day the money arrived, refunds on the day they were made. Seven ready-made periods or your own dates, a daily chart, and a CSV your accountant can open.',
+      },
+      {
+        title: 'Fraud screening and blocklists',
+        body: 'An explainable score on every order, built only from your own store history. Block an email, a whole domain, an IP or a country, and see every checkout that was refused.',
       },
     ],
   },
@@ -419,6 +450,10 @@ export const comparison = [
   { row: 'Automatic crypto verification', starter: true, professional: true, agency: true },
   { row: 'Abandoned checkout recovery', starter: true, professional: true, agency: true },
   { row: 'Invoices & customer portal', starter: true, professional: true, agency: true },
+  { row: 'Financial reports & CSV export', starter: true, professional: true, agency: true },
+  { row: 'Fraud screening & blocklists', starter: true, professional: true, agency: true },
+  { row: 'Provider monitoring & alerts', starter: true, professional: true, agency: true },
+  { row: 'Webhooks with automatic retries', starter: false, professional: true, agency: true },
   { row: 'Custom checkout fields', starter: true, professional: true, agency: true },
   { row: 'Coupons', starter: true, professional: true, agency: true },
   { row: 'Trust badges', starter: false, professional: true, agency: true },
@@ -445,6 +480,10 @@ export const comparison = [
 ]
 
 export const homeFaqs = [
+  {
+    q: 'How does MethodePay protect me from fraud on manual payments?',
+    a: 'Every checkout is scored before the order is created, from your own store history only: throwaway email addresses, many checkouts from one email or IP in an hour, a billing country that differs from where the buyer connects, unusually large orders, and a bank or transfer reference that was already used on another order. Risky orders are flagged with the reasons in plain words, or refused if you prefer, and you can block an email, a domain, an IP or a whole country in one click.',
+  },
   {
     q: 'Can MethodePay confirm crypto payments by itself?',
     a: 'Yes. When a buyer submits their transaction ID, MethodePay looks it up on the blockchain and checks it paid your wallet, in the right coin, enough to cover the order, after the order was placed, with enough confirmations, and that it was never used for another order. Verified orders are marked paid and delivered automatically, or flagged for you to confirm if you prefer. Bitcoin, Litecoin, Ethereum, BNB Chain, Polygon and TRON are supported, including USDT and USDC.',

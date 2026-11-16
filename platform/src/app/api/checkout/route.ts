@@ -8,6 +8,7 @@ import { initiate, nextUrlFor } from '@/lib/gateway/initiate';
 import { createOrder } from '@/lib/orders';
 import { inStock } from '@/lib/shipping';
 import { env } from '@/lib/env';
+import { assessCheckout, recordBlocked, requestOrigin } from '@/lib/fraud/assess';
 
 export const dynamic = 'force-dynamic';
 
@@ -121,6 +122,39 @@ export async function POST(request: Request) {
     }
   }
 
+  // Fraud screening happens before the order exists, so a refused checkout
+  // never sends the merchant a new-order alert or a webhook.
+  const client = requestOrigin(request);
+  const risk = await assessCheckout({
+    accountId: product.accountId,
+    email: input.buyerEmail,
+    name: input.buyerName,
+    amountCents: product.priceCents,
+    buyerCountry: input.buyerCountry,
+    paymentMethod: chosen.key,
+    ip: client.ip,
+    ipCountry: client.ipCountry,
+  }).catch(() => null);
+  if (risk?.blocked) {
+    await recordBlocked({
+      accountId: product.accountId,
+      productId: product.id,
+      email: input.buyerEmail,
+      ip: client.ip,
+      country: input.buyerCountry,
+      ipCountry: client.ipCountry,
+      amountCents: product.priceCents,
+      currency: product.currency,
+      assessment: risk,
+    });
+    // Deliberately vague: telling a fraudster which rule fired teaches them
+    // how to get past it.
+    return NextResponse.json(
+      { error: 'We could not accept this order. Please contact the seller if you think this is a mistake.' },
+      { status: 403 },
+    );
+  }
+
   const order = await createOrder({
     accountId: product.accountId,
     product,
@@ -142,6 +176,9 @@ export async function POST(request: Request) {
     customFields,
     renewalOfId,
     orderBump: input.orderBump === true,
+    risk: risk?.enabled ? { score: risk.score, level: risk.level, reasons: risk.reasons } : null,
+    buyerIp: client.ip,
+    ipCountry: client.ipCountry,
   });
 
   const origin = env.checkoutUrl || new URL(request.url).origin;

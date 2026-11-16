@@ -8,7 +8,11 @@ import { orderBumpOf } from '@/lib/offers';
 import { storedCheck } from '@/lib/chain/reconcile';
 import { prettyMethod } from '@/lib/notifier';
 import { CARRIERS, trackingUrl } from '@/lib/shipping';
-import { Field, PageHeader, Section, StatusBadge } from '@/components/ui';
+import { Banner, Field, PageHeader, Section, StatusBadge } from '@/components/ui';
+import { RiskBadge } from '@/components/risk-badge';
+import { countryName } from '@/lib/labels';
+import type { RiskReason } from '@/lib/fraud/score';
+import { blockBuyerAction } from '../../fraud/actions';
 import { ActionForm, SubmitButton } from '@/components/action-form';
 import {
   addNoteAction,
@@ -42,6 +46,8 @@ export default async function OrderPage({ params }: { params: { id: string } }) 
   const customFields = readCustomFields(order.meta);
   const chain = storedCheck(order.meta);
   const cryptoRail = ['crypto', 'bc_paypal', 'bc_cashapp', 'finchpay_btc'].includes(order.paymentMethod ?? '');
+  const risk = readRisk(order.meta);
+  const openStatus = order.status === 'PENDING' || order.status === 'AWAITING_VERIFICATION';
 
   return (
     <>
@@ -50,6 +56,12 @@ export default async function OrderPage({ params }: { params: { id: string } }) 
         description={`${order.product.name} · placed ${order.createdAt.toISOString().slice(0, 16).replace('T', ' ')}`}
         action={<StatusBadge status={order.status} />}
       />
+
+      {order.riskLevel === 'high' && openStatus ? (
+        <Banner tone="warn">
+          This order was flagged as high risk. Check the reasons on the right before you confirm the payment or deliver anything.
+        </Banner>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
         <div className="space-y-6">
@@ -204,6 +216,43 @@ export default async function OrderPage({ params }: { params: { id: string } }) 
         </div>
 
         <div className="space-y-6">
+          {order.riskLevel ? (
+            <Section title="Fraud screening" description="Scored at checkout from your own store history.">
+              <div className="flex items-center gap-2">
+                <RiskBadge level={order.riskLevel} score={order.riskScore} />
+              </div>
+              {risk.reasons.length ? (
+                <ul className="mt-3 space-y-1.5 text-sm">
+                  {risk.reasons.map((r, i) => (
+                    <li key={i} className="flex gap-2.5">
+                      <span className={`w-9 shrink-0 text-right font-mono text-xs ${r.points < 0 ? 'text-mint' : 'text-amber-200'}`}>
+                        {r.points > 0 ? '+' : ''}
+                        {r.points}
+                      </span>
+                      <span className="text-ink-200">{r.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-3 text-sm text-ink-300">Nothing unusual.</p>
+              )}
+              <p className="mt-3 text-xs text-ink-400">
+                {order.buyerIp ? `IP ${order.buyerIp}` : 'IP not recorded'}
+                {risk.ipCountry ? ` · connected from ${countryName(risk.ipCountry)}` : ''}
+              </p>
+              <ActionForm action={blockBuyerAction} className="mt-4">
+                <input type="hidden" name="orderId" value={order.id} />
+                <SubmitButton
+                  variant="danger"
+                  className="!px-2.5 !py-1.5 !text-xs"
+                  confirm="Refuse future checkouts from this email and IP address?"
+                >
+                  Block this buyer
+                </SubmitButton>
+              </ActionForm>
+            </Section>
+          ) : null}
+
           {cryptoRail && order.paymentReference ? (
             <Section
               title="Blockchain check"
@@ -385,6 +434,16 @@ function humanEvent(type: string): string {
     webhook_received: 'Provider webhook',
     chain_check: 'Blockchain check',
     recovery_sent: 'Recovery email sent',
+    risk_flagged: 'Fraud flag',
+    buyer_blocked: 'Buyer blocked',
   };
   return map[type] ?? type.replace(/_/g, ' ');
+}
+
+function readRisk(meta: unknown): { reasons: RiskReason[]; ipCountry: string | null } {
+  const risk = (meta as Record<string, unknown> | null)?.risk as Record<string, unknown> | undefined;
+  return {
+    reasons: Array.isArray(risk?.reasons) ? (risk!.reasons as RiskReason[]) : [],
+    ipCountry: typeof risk?.ipCountry === 'string' ? risk.ipCountry : null,
+  };
 }

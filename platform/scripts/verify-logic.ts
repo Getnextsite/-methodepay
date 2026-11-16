@@ -27,6 +27,10 @@ import { chainOf, cleanTxid, normalizeCoin, tronAddress } from '../src/lib/chain
 import { parseChainVerify } from '../src/lib/chain/settings';
 import { parseRecovery } from '../src/lib/recovery-settings';
 import { parseInvoice } from '../src/lib/invoice';
+import { afterAttempt, MAX_ATTEMPTS, RETRY_DELAYS_MS } from '../src/lib/webhook-schedule';
+import { blocklistHit, isDisposableEmail, parseFraud, scoreRisk, suspiciousName, type RiskSignals } from '../src/lib/fraud/score';
+import { bucketKey, bucketsFor, csvCell, pctChange, resolvePeriod } from '../src/lib/reports-period';
+import { alertTransitions, combineStatus, parseMonitor } from '../src/lib/monitor-status';
 import {
   METHOD_DEFINITIONS,
   defaultConfig,
@@ -333,6 +337,150 @@ function eq<T>(name: string, actual: T, expected: T) {
   eq('recovery: blank subject falls back', parseRecovery({ subject: '  ' }).subject.includes('{product}'), true);
   eq('invoice: fields trimmed', parseInvoice({ taxId: '  FR123 ' }).taxId, 'FR123');
   eq('invoice: missing fields are blank', parseInvoice(null).businessName, '');
+}
+
+// ---------------------------------------------------------------- webhook retries
+{
+  const t0 = Date.UTC(2026, 0, 1);
+  eq('webhook: 200 is delivered', afterAttempt(1, 200, t0).status, 'delivered');
+  eq('webhook: 204 is delivered', afterAttempt(1, 204, t0).status, 'delivered');
+  eq('webhook: 500 is retried', afterAttempt(1, 500, t0).status, 'retrying');
+  eq('webhook: first retry after 1 min', afterAttempt(1, 500, t0).nextAttemptAt?.getTime(), t0 + 60_000);
+  eq('webhook: second retry after 5 min', afterAttempt(2, 503, t0).nextAttemptAt?.getTime(), t0 + 300_000);
+  eq('webhook: timeout (no response) is retried', afterAttempt(1, null, t0).status, 'retrying');
+  eq('webhook: 404 fails at once', afterAttempt(1, 404, t0).status, 'failed');
+  eq('webhook: 401 fails at once', afterAttempt(1, 401, t0).status, 'failed');
+  eq('webhook: 429 is retried', afterAttempt(1, 429, t0).status, 'retrying');
+  eq('webhook: 408 is retried', afterAttempt(1, 408, t0).status, 'retrying');
+  eq('webhook: gives up after the last attempt', afterAttempt(MAX_ATTEMPTS, 500, t0).status, 'failed');
+  eq('webhook: last retry is scheduled', afterAttempt(MAX_ATTEMPTS - 1, 500, t0).status, 'retrying');
+  eq('webhook: 6 retries in the schedule', RETRY_DELAYS_MS.length, 6);
+  eq('webhook: a 3xx redirect is retried, not followed', afterAttempt(1, 301, t0).status, 'retrying');
+}
+
+// ---------------------------------------------------------------- fraud scoring
+{
+  const settings = parseFraud({});
+  const base: RiskSignals = {
+    email: 'amina@gmail.com',
+    name: 'Amina Khalil',
+    amountCents: 4900,
+    buyerCountry: 'MA',
+    ipCountry: 'MA',
+    ip: '41.0.0.1',
+    emailOrdersLastHour: 0,
+    ipOrdersLastHour: 0,
+    unpaidLastWeek: 0,
+    paidBefore: 0,
+    averageOrderCents: 0,
+    paymentMethod: 'crypto',
+  };
+  const clean = scoreRisk(base, settings);
+  eq('fraud: ordinary buyer scores 0', clean.score, 0);
+  eq('fraud: ordinary buyer is low', clean.level, 'low');
+  eq('fraud: ordinary buyer not blocked', clean.blocked, false);
+
+  eq('fraud: defaults on, not blocking', JSON.stringify([settings.enabled, settings.blockHigh]), '[true,false]');
+  eq('fraud: medium never above high', parseFraud({ mediumAt: 90, highAt: 50 }).mediumAt, 50);
+  eq('fraud: countries cleaned', parseFraud({ blockedCountries: 'ng, kp ,xyz' }).blockedCountries.join(','), 'NG,KP');
+  eq('fraud: blocklist from lines', parseFraud({ blocklist: 'A@x.com\n@bad.io\n\n1.2.3.4' }).blocklist.length, 3);
+
+  eq('fraud: mailinator is disposable', isDisposableEmail('x@mailinator.com'), true);
+  eq('fraud: subdomain of disposable', isDisposableEmail('x@eu.yopmail.com'), true);
+  eq('fraud: gmail is not disposable', isDisposableEmail('x@gmail.com'), false);
+
+  eq('fraud: blocklist email match', blocklistHit(['bad@x.com'], { email: 'BAD@x.com' }), 'bad@x.com');
+  eq('fraud: blocklist domain match', blocklistHit(['@x.com'], { email: 'a@mail.x.com' }), '@x.com');
+  eq('fraud: blocklist ip match', blocklistHit(['9.9.9.9'], { email: 'a@b.com', ip: '9.9.9.9' }), '9.9.9.9');
+  eq('fraud: blocklist no match', blocklistHit(['@x.com'], { email: 'a@notx.com' }), null);
+
+  eq('fraud: single letter name is suspicious', suspiciousName('A'), true);
+  eq('fraud: keyboard mash is suspicious', suspiciousName('asdfgh jkl'), true);
+  eq('fraud: real name is fine', suspiciousName('Jean-Pierre Dubois'), false);
+  eq('fraud: arabic name is fine', suspiciousName('أمينة خليل'), false);
+
+  const listed = scoreRisk(base, parseFraud({ blocklist: ['amina@gmail.com'] }));
+  eq('fraud: blocklisted buyer is blocked', listed.blocked, true);
+  eq('fraud: blocklisted buyer scores 100', listed.score, 100);
+
+  const country = scoreRisk({ ...base, ipCountry: 'NG' }, parseFraud({ blockedCountries: ['NG'] }));
+  eq('fraud: blocked connecting country refused', country.blocked, true);
+
+  const mismatch = scoreRisk({ ...base, ipCountry: 'US' }, settings);
+  eq('fraud: country mismatch adds 20', mismatch.score, 20);
+
+  const velocity = scoreRisk({ ...base, emailOrdersLastHour: 3, ipOrdersLastHour: 5, email: 'z@yopmail.com' }, settings);
+  eq('fraud: velocity + throwaway is high', velocity.level, 'high');
+  eq('fraud: high risk only flagged by default', velocity.blocked, false);
+  eq('fraud: high risk blocked when asked', scoreRisk({ ...base, emailOrdersLastHour: 3, ipOrdersLastHour: 5, email: 'z@yopmail.com' }, parseFraud({ blockHigh: true })).blocked, true);
+
+  const returning = scoreRisk({ ...base, ipCountry: 'US', paidBefore: 4 }, settings);
+  eq('fraud: returning customer offsets a mismatch', returning.score, 0);
+
+  const big = scoreRisk({ ...base, amountCents: 60_000, averageOrderCents: 5_000 }, settings);
+  eq('fraud: large order flagged', big.reasons.some((r) => r.code === 'large_order'), true);
+  const limit = scoreRisk({ ...base, amountCents: 60_000 }, parseFraud({ maxAmountCents: 50_000 }));
+  eq('fraud: over review limit flagged', limit.reasons.some((r) => r.code === 'over_limit'), true);
+
+  const off = scoreRisk(base, parseFraud({ enabled: false, blocklist: ['amina@gmail.com'] }));
+  eq('fraud: switched off never blocks', off.blocked, false);
+  eq('fraud: score never above 100', scoreRisk({ ...base, email: 'q@yopmail.com', emailOrdersLastHour: 9, ipOrdersLastHour: 9, ipCountry: 'US', unpaidLastWeek: 5, name: 'x', paymentMethod: 'amazon_giftcard' }, parseFraud({ blocklist: ['q@yopmail.com'] })).score, 100);
+}
+
+// ---------------------------------------------------------------- report periods
+{
+  const now = new Date(Date.UTC(2026, 10, 16, 15, 30));
+  const p30 = resolvePeriod({ range: '30d' }, now);
+  eq('reports: 30d ends tomorrow 00:00', p30.to.toISOString(), '2026-11-17T00:00:00.000Z');
+  eq('reports: 30d starts 30 days earlier', p30.from.toISOString(), '2026-10-18T00:00:00.000Z');
+  eq('reports: previous period same length', p30.prevTo.getTime() - p30.prevFrom.getTime(), p30.to.getTime() - p30.from.getTime());
+  eq('reports: 30d is daily', p30.bucket, 'day');
+  eq('reports: 30 daily buckets', bucketsFor(p30).length, 30);
+
+  const mtd = resolvePeriod({ range: 'mtd' }, now);
+  eq('reports: this month starts on the 1st', mtd.from.toISOString().slice(0, 10), '2026-11-01');
+  const last = resolvePeriod({ range: 'last_month' }, now);
+  eq('reports: last month', [last.from.toISOString().slice(0, 10), last.to.toISOString().slice(0, 10)].join(' '), '2026-10-01 2026-11-01');
+  eq('reports: 90d is weekly', resolvePeriod({ range: '90d' }, now).bucket, 'week');
+  eq('reports: 12 months is monthly', resolvePeriod({ range: '12m' }, now).bucket, 'month');
+  eq('reports: 12 months has 12 buckets', bucketsFor(resolvePeriod({ range: '12m' }, now)).length, 12);
+
+  const custom = resolvePeriod({ range: 'custom', from: '2026-02-01', to: '2026-02-28' }, now);
+  eq('reports: custom range inclusive end', custom.to.toISOString().slice(0, 10), '2026-03-01');
+  eq('reports: reversed custom range falls back', resolvePeriod({ range: 'custom', from: '2026-03-01', to: '2026-02-01' }, now).key, '30d');
+  eq('reports: unknown range falls back', resolvePeriod({ range: 'forever' }, now).key, '30d');
+
+  eq('reports: week buckets start Monday', bucketKey(new Date(Date.UTC(2026, 10, 15)), 'week'), '2026-11-09');
+  eq('reports: pct up', pctChange(150, 100), 50);
+  eq('reports: pct down', pctChange(50, 100), -50);
+  eq('reports: pct from zero is unknown', pctChange(10, 0), null);
+
+  eq('csv: plain', csvCell('abc'), 'abc');
+  eq('csv: comma quoted', csvCell('a,b'), '"a,b"');
+  eq('csv: quotes doubled', csvCell('say "hi"'), '"say ""hi"""');
+  eq('csv: formula defused', csvCell('=HYPERLINK("x")'), '"\'=HYPERLINK(""x"")"');
+  eq('csv: negative number kept', csvCell('-19.99'), '-19.99');
+}
+
+// ---------------------------------------------------------------- provider monitoring
+{
+  const up = { ok: true, message: 'ok', latencyMs: 300 };
+  eq('monitor: healthy probe is up', combineStatus(up, { started: 10, failedToStart: 0 }).status, 'up');
+  eq('monitor: failed probe is down', combineStatus({ ok: false, message: 'bad key', latencyMs: 100 }, { started: 0, failedToStart: 0 }).status, 'down');
+  eq('monitor: slow probe is degraded', combineStatus({ ok: true, message: 'ok', latencyMs: 6000 }, { started: 0, failedToStart: 0 }).status, 'degraded');
+  eq('monitor: most checkouts failing is down', combineStatus(up, { started: 4, failedToStart: 3 }).status, 'down');
+  eq('monitor: some checkouts failing is degraded', combineStatus(up, { started: 10, failedToStart: 2 }).status, 'degraded');
+  eq('monitor: one failure is not an incident', combineStatus(up, { started: 2, failedToStart: 1 }).status, 'up');
+  eq('monitor: manual rail stays manual', combineStatus({ ok: null, message: 'manual', latencyMs: null }, { started: 3, failedToStart: 0 }).status, 'manual');
+
+  const at = '2026-11-16T00:00:00Z';
+  const r = (status: 'up' | 'down' | 'degraded') => ({ status, message: '', latencyMs: null, checkedAt: at });
+  eq('monitor: alert when going down', alertTransitions({ stripe: r('up') }, { stripe: r('down') }).length, 1);
+  eq('monitor: alert when recovering', alertTransitions({ stripe: r('down') }, { stripe: r('up') })[0]?.to, 'up');
+  eq('monitor: no alert while still down', alertTransitions({ stripe: r('down') }, { stripe: r('down') }).length, 0);
+  eq('monitor: no alert for degraded', alertTransitions({ stripe: r('up') }, { stripe: r('degraded') }).length, 0);
+  eq('monitor: alerts on by default', parseMonitor({}).alerts, true);
+  eq('monitor: bad status read as down', parseMonitor({ results: { x: { status: 'weird' } } }).results.x.status, 'down');
 }
 
 // ---------------------------------------------------------------- report
