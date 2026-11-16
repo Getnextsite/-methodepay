@@ -708,6 +708,206 @@ textarea.mp-input { resize: vertical; min-height: 78px; }
 .mp-modal-actions .mp-btn-ghost { width: 100%; }
 @keyframes mp-modal-in { from { opacity: 0; } to { opacity: 1; } }
 
+/* ---------------------------------------------------------------- pay with crypto */
+
+.mp-crypto { display: grid; gap: 22px; }
+.mp-crypto-step { display: grid; gap: 10px; }
+.mp-crypto-h {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.mp-crypto-n {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 800;
+  background: var(--mp-primary);
+  color: var(--mp-primary-contrast);
+}
+
+.mp-coins { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.mp-coin {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 11px;
+  text-align: left;
+  font: inherit;
+  color: var(--mp-text);
+  background: color-mix(in srgb, var(--mp-text) 3%, transparent);
+  border: 1px solid var(--mp-border);
+  border-radius: var(--mp-radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.mp-coin:hover { border-color: color-mix(in srgb, var(--mp-primary) 45%, var(--mp-border)); }
+.mp-coin[aria-selected='true'] {
+  border-color: var(--mp-primary);
+  background: color-mix(in srgb, var(--mp-primary) 10%, transparent);
+  box-shadow: 0 0 0 1px var(--mp-primary) inset;
+}
+.mp-coin-badge {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+}
+.mp-coin-text { display: grid; min-width: 0; line-height: 1.25; }
+.mp-coin-text strong { font-size: 13.5px; }
+.mp-coin-text span { font-size: 11.5px; color: var(--mp-text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.mp-nets { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.mp-net {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  text-align: left;
+  font: inherit;
+  color: var(--mp-text);
+  background: transparent;
+  border: 1px solid var(--mp-border);
+  border-radius: var(--mp-radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.mp-net strong { font-size: 13px; }
+.mp-net span { font-size: 11.5px; color: var(--mp-text-faint); }
+.mp-net:hover { border-color: color-mix(in srgb, var(--mp-primary) 45%, var(--mp-border)); }
+.mp-net[aria-selected='true'] {
+  border-color: var(--mp-primary);
+  background: color-mix(in srgb, var(--mp-primary) 10%, transparent);
+  box-shadow: 0 0 0 1px var(--mp-primary) inset;
+}
+.mp-net--static { cursor: default; justify-self: start; min-width: 220px; }
+
+.mp-paybox {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 20px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--mp-primary) 30%, var(--mp-border));
+  border-radius: var(--mp-radius-sm);
+  background: color-mix(in srgb, var(--mp-primary) 5%, transparent);
+}
+.mp-paybox-qr { display: grid; justify-items: center; align-content: start; gap: 8px; }
+.mp-paybox-qr img, .mp-paybox-noqr {
+  width: 168px;
+  height: 168px;
+  border-radius: 10px;
+  background: #fff;
+  padding: 7px;
+}
+.mp-paybox-noqr { display: grid; place-items: center; color: #777; font-size: 12px; }
+.mp-paybox-info { min-width: 0; }
+.mp-paybox-info > .mp-eyebrow { margin-bottom: 4px; }
+.mp-paybox-amount {
+  margin: 0;
+  font-size: clamp(22px, 3.2vw, 28px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  word-break: break-all;
+  font-variant-numeric: tabular-nums;
+}
+.mp-paybox-amount span { font-size: 0.55em; font-weight: 600; color: var(--mp-text-muted); letter-spacing: 0; }
+.mp-paybox-amount--muted { color: var(--mp-text-muted); }
+.mp-tabular { font-variant-numeric: tabular-nums; }
+.mp-linkbtn {
+  padding: 0;
+  font: inherit;
+  color: var(--mp-primary);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.mp-verify {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  position: relative;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--mp-text-muted);
+}
+.mp-verify::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--mp-text-faint);
+}
+.mp-verify--auto::before { background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2); }
+
+.mp-warn {
+  padding: 11px 13px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--mp-text);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.09);
+  border-radius: var(--mp-radius-sm);
+}
+
+.mp-acc { display: grid; gap: 8px; }
+.mp-acc details {
+  border: 1px solid var(--mp-border);
+  border-radius: var(--mp-radius-sm);
+  background: color-mix(in srgb, var(--mp-text) 2%, transparent);
+}
+.mp-acc summary {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mp-acc summary::-webkit-details-marker { display: none; }
+.mp-acc summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-right: 2px solid var(--mp-text-muted);
+  border-bottom: 2px solid var(--mp-text-muted);
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform 0.15s;
+}
+.mp-acc details[open] summary::after { transform: rotate(-135deg) translateY(-2px); }
+.mp-acc-steps, .mp-acc-body {
+  margin: 0;
+  padding: 0 14px 14px 32px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--mp-text-muted);
+}
+.mp-acc-body { padding-left: 14px; }
+.mp-acc-body p { margin: 0 0 8px; }
+.mp-acc-body p:last-child { margin-bottom: 0; }
+
+@media (max-width: 560px) {
+  .mp-paybox { grid-template-columns: 1fr; padding: 15px; }
+  .mp-coins { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mp-nets { grid-template-columns: 1fr; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mp-page * { transition: none !important; animation: none !important; }
 }

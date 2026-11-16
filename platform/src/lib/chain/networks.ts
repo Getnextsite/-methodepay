@@ -62,3 +62,20 @@ export function tronAddress(hex: string): string {
   return base58(Buffer.concat([payload, check]));
 }
 
+
+const NATIVE: Record<ChainId, string> = { btc: 'BTC', ltc: 'LTC', eth: 'ETH', bsc: 'BNB', polygon: 'POL', tron: 'TRX' };
+
+/**
+ * Whether a payment in this coin on this network can be verified on the
+ * blockchain: the chain is readable AND the coin is either its native coin or
+ * a stablecoin whose contract the verifier knows (USDT, USDC). BTC on BNB
+ * Chain is readable but not verifiable, so it must not be promised as such.
+ */
+export function autoVerifiable(coin: string, network: string): boolean {
+  const chain = chainOf(coin, network);
+  if (!chain) return false;
+  const c = normalizeCoin(coin);
+  if (c === NATIVE[chain]) return true;
+  if (chain === 'btc' || chain === 'ltc') return false;
+  return c === 'USDT' || c === 'USDC';
+}

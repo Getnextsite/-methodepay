@@ -7,7 +7,11 @@ import { readConfig } from '@/lib/gateway/config';
 import { methodDefinition } from '@/lib/gateway/registry';
 import { initiateAlchemyPay, finchpayWidgetUrl } from '@/lib/gateway/providers/onramp';
 import { fillPlaceholders } from '@/lib/gateway/initiate';
-import { formatMoney, fromCents } from '@/lib/money';
+import { formatMoney, fromCents, minorUnits } from '@/lib/money';
+import { byNetworkOrder, coinAmount, coinInfo, networkInfo } from '@/lib/crypto-catalog';
+import { quotePrices } from '@/lib/crypto-quote';
+import { autoVerifiable } from '@/lib/chain/networks';
+import { CryptoPicker, type PickerCoin } from '@/components/checkout/crypto-picker';
 import { CheckoutShell, Card, MerchantHeader, PolicyFooter } from '@/components/checkout/shell';
 import { CopyField } from '@/components/checkout/copy-field';
 import { ConfirmPayment } from '@/components/checkout/confirm';
@@ -79,7 +83,7 @@ export default async function PayPage({ params }: { params: { nonce: string } })
           <Card>
             <p style={caps}>Order {order.ref}</p>
             <h1 style={{ margin: '8px 0 0', fontSize: 23, letterSpacing: '-0.015em' }}>
-              Pay {amount} with {label}
+              Pay {amount} with {label.replace(/^pay (with |via )?/i, '')}
             </h1>
             <p style={{ margin: '7px 0 0', fontSize: 13.5, color: 'var(--mp-text-muted)' }}>
               {order.product.name}
@@ -400,51 +404,59 @@ async function CryptoInstructions({
     return <Note>This store has no wallet addresses set up yet. Please contact the seller.</Note>;
   }
 
-  // Server-rendered QR for each wallet: no client library, no layout shift,
-  // and it still works with JavaScript disabled.
-  const withQr = await Promise.all(
-    wallets.map(async (wallet) => ({
-      ...wallet,
-      qr: wallet.qrImageUrl ?? (await qrDataUrl(wallet.address)),
-    })),
+  // Group the merchant's wallets by coin, keeping the order they chose.
+  const groups = new Map<string, InstructionProps['wallets']>();
+  for (const w of wallets) {
+    const symbol = w.coin.trim().toUpperCase();
+    groups.set(symbol, [...(groups.get(symbol) ?? []), w]);
+  }
+
+  // One price request for every coin, with a short timeout: a slow price
+  // feed must not hold up the payment page.
+  const prices = await quotePrices([...groups.keys()], order.currency);
+  const fiatDecimals = minorUnits(order.currency) === 1 ? 0 : 2;
+
+  // Server-rendered QR codes: no client library, no layout shift.
+  const coins: PickerCoin[] = await Promise.all(
+    [...groups.entries()].map(async ([symbol, unordered]) => {
+      const rows = byNetworkOrder(symbol, unordered);
+      const info = coinInfo(symbol);
+      const price = prices[symbol];
+      const amount =
+        price && info ? coinAmount(order.amountCents, fiatDecimals, price, info.decimals) : null;
+      return {
+        symbol,
+        name: info?.name ?? symbol,
+        color: info?.color ?? '#64748b',
+        glyph: info?.glyph ?? symbol.slice(0, 1),
+        networks: await Promise.all(
+          rows.map(async (w) => {
+            const net = networkInfo(symbol, w.network);
+            return {
+              walletId: w.id,
+              id: w.network,
+              label: net?.label ?? (w.network || symbol),
+              hint: net?.hint ?? '',
+              address: w.address,
+              qr: w.qrImageUrl ?? (await qrDataUrl(w.address)),
+              amount,
+              autoVerified: autoVerifiable(symbol, w.network),
+            };
+          }),
+        ),
+      };
+    }),
   );
 
+  const minutes = Number(config.timerMinutes ?? 15);
+  const anyQuote = coins.some((c) => c.networks[0]?.amount);
   return (
-    <>
-      <Steps
-        steps={[
-          `Send exactly ${fromCents(order.amountCents, order.currency)} worth of the coin you choose.`,
-          'Use the matching network — the wrong network loses the funds.',
-          'Paste the transaction ID below so the seller can verify it.',
-        ]}
-      />
-      {config.instructions ? <Html html={String(config.instructions)} /> : null}
-
-      <div style={{ marginTop: 14, display: 'grid', gap: 14 }}>
-        {withQr.map((wallet) => (
-          <div
-            key={wallet.id}
-            style={{
-              padding: 14,
-              border: '1px solid var(--mp-border)',
-              borderRadius: 'var(--mp-radius-sm)',
-            }}
-          >
-            <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600 }}>
-              {wallet.coin}
-              {wallet.network ? (
-                <span style={{ color: 'var(--mp-text-muted)', fontWeight: 400 }}>
-                  {' '}
-                  · {wallet.network}
-                </span>
-              ) : null}
-            </p>
-            {wallet.qr ? <Qr src={wallet.qr} alt={`${wallet.coin} address QR code`} /> : null}
-            <CopyField label="Address" value={wallet.address} />
-          </div>
-        ))}
-      </div>
-    </>
+    <CryptoPicker
+      coins={coins}
+      fiatAmount={formatMoney(order.amountCents, order.currency)}
+      quoteExpiresAt={anyQuote && minutes > 0 ? Date.now() + minutes * 60_000 : null}
+      instructionsHtml={config.instructions ? String(config.instructions) : null}
+    />
   );
 }
 

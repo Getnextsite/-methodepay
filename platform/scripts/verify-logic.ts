@@ -25,6 +25,8 @@ import { parseConfirmChannels, resolveConfirm } from '../src/lib/confirm-channel
 import { activeBump, bumpCents, orderBumpOf, parseBump, parseUpsell } from '../src/lib/offers';
 import { chainOf, cleanTxid, normalizeCoin, tronAddress } from '../src/lib/chain/networks';
 import { parseChainVerify } from '../src/lib/chain/settings';
+import { autoVerifiable } from '../src/lib/chain/networks';
+import { CRYPTO_CATALOG, addressProblem, coinAmount, networkInfo } from '../src/lib/crypto-catalog';
 import { parseRecovery } from '../src/lib/recovery-settings';
 import { parseInvoice } from '../src/lib/invoice';
 import { afterAttempt, MAX_ATTEMPTS, RETRY_DELAYS_MS } from '../src/lib/webhook-schedule';
@@ -425,6 +427,41 @@ function eq<T>(name: string, actual: T, expected: T) {
   const off = scoreRisk(base, parseFraud({ enabled: false, blocklist: ['amina@gmail.com'] }));
   eq('fraud: switched off never blocks', off.blocked, false);
   eq('fraud: score never above 100', scoreRisk({ ...base, email: 'q@yopmail.com', emailOrdersLastHour: 9, ipOrdersLastHour: 9, ipCountry: 'US', unpaidLastWeek: 5, name: 'x', paymentMethod: 'amazon_giftcard' }, parseFraud({ blocklist: ['q@yopmail.com'] })).score, 100);
+}
+
+// ---------------------------------------------------------------- crypto catalog
+{
+  eq('catalog: every coin has a network', CRYPTO_CATALOG.every((c) => c.networks.length > 0), true);
+  eq('catalog: symbols unique', new Set(CRYPTO_CATALOG.map((c) => c.symbol)).size, CRYPTO_CATALOG.length);
+  eq('catalog: network ids unique per coin', CRYPTO_CATALOG.every((c) => new Set(c.networks.map((n) => n.id)).size === c.networks.length), true);
+
+  eq('address: TRC20 accepts a Tron address', addressProblem('USDT', 'TRC20', 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'), null);
+  eq('address: TRC20 refuses an EVM address', addressProblem('USDT', 'TRC20', '0x' + 'a'.repeat(40)) !== null, true);
+  eq('address: ERC20 accepts 0x address', addressProblem('USDT', 'ERC20', '0x' + 'A1'.repeat(20)), null);
+  eq('address: ERC20 refuses a Tron address', addressProblem('USDC', 'ERC20', 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t') !== null, true);
+  eq('address: BTC bech32 accepted', addressProblem('BTC', 'Bitcoin', 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq'), null);
+  eq('address: BTC legacy accepted', addressProblem('BTC', 'Bitcoin', '1BoatSLRHtKNngkdXEeobR76b53LETtpyT'), null);
+  eq('address: BTC refuses a Litecoin address', addressProblem('BTC', 'Bitcoin', 'ltc1qg42tkwuuxefutzxezdkdel39gfstuap288mfea') !== null, true);
+  eq('address: LTC accepted', addressProblem('LTC', 'Litecoin', 'ltc1qg42tkwuuxefutzxezdkdel39gfstuap288mfea'), null);
+  eq('address: spaces refused', addressProblem('USDT', 'TRC20', 'TR7N Hqje') !== null, true);
+  eq('address: Lightning not pattern-checked', addressProblem('BTC', 'Lightning', 'lnurl1dp68gurn8ghj7'), null);
+  eq('address: unknown coin not checked', addressProblem('AVAX', 'C-Chain', 'anything'), null);
+
+  eq('network: old free text "Tron (TRC-20)" found', networkInfo('USDT', 'trc-20')?.id, 'TRC20');
+  eq('network: label for BEP20', networkInfo('USDT', 'BEP20')?.label, 'BNB Smart Chain (BEP-20)');
+
+  eq('amount: $39 at BTC 60000', coinAmount(3900, 2, 60000, 8), '0.00065000');
+  eq('amount: rounds up, never down', coinAmount(1000, 2, 3, 2), '3.34');
+  eq('amount: stable 1:1', coinAmount(3900, 2, 1, 2), '39.00');
+
+  eq('verify: USDT on TRC20', autoVerifiable('USDT', 'TRC20'), true);
+  eq('verify: BTC on Bitcoin', autoVerifiable('BTC', 'Bitcoin'), true);
+  eq('verify: BTC on BEP20 is not', autoVerifiable('BTC', 'BEP20'), false);
+  eq('verify: ETH on BEP20 is not', autoVerifiable('ETH', 'BEP20'), false);
+  eq('verify: BNB on BEP20', autoVerifiable('BNB', 'BEP20'), true);
+  eq('verify: DAI is not', autoVerifiable('DAI', 'ERC20'), false);
+  eq('verify: USDC on Solana is not', autoVerifiable('USDC', 'Solana'), false);
+  eq('verify: USDC on Polygon', autoVerifiable('USDC', 'Polygon'), true);
 }
 
 // ---------------------------------------------------------------- report periods
