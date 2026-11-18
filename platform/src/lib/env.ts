@@ -70,6 +70,30 @@ export const env = {
     } as const;
   },
 
+  // --- platform billing via Freemius ---
+  get freemius() {
+    return {
+      /** Numeric product id from the Freemius Developer Dashboard. */
+      productId: optional('FREEMIUS_PRODUCT_ID'),
+      /**
+       * The product secret key. Signs nothing outbound — it is the HMAC key
+       * every inbound webhook is verified against, so it is as sensitive as a
+       * Stripe secret.
+       */
+      secretKey: optional('FREEMIUS_SECRET_KEY'),
+      /**
+       * One Freemius plan id per tier. A plan carries both its monthly and
+       * annual pricing, so unlike Stripe there is no id per interval — the
+       * interval is a checkout parameter.
+       */
+      plans: {
+        STARTER: optional('FREEMIUS_PLAN_STARTER'),
+        PROFESSIONAL: optional('FREEMIUS_PLAN_PROFESSIONAL'),
+        AGENCY: optional('FREEMIUS_PLAN_AGENCY'),
+      },
+    } as const;
+  },
+
   // --- outbound email ---
   get smtp() {
     return {
@@ -87,9 +111,23 @@ export const env = {
   },
 };
 
-/** True when platform billing is wired up; the UI degrades gracefully if not. */
-export function billingConfigured(): boolean {
+/** True when Freemius can take money for us. */
+export function freemiusConfigured(): boolean {
+  const fs = env.freemius;
+  return fs.productId.length > 0 && fs.secretKey.length > 0;
+}
+
+export function stripeBillingConfigured(): boolean {
   return env.platformStripeSecret.length > 0;
+}
+
+/**
+ * True when platform billing is wired up at all; the UI degrades gracefully
+ * if not. Either provider counts, and Freemius wins when both are set — see
+ * `billingProvider()`.
+ */
+export function billingConfigured(): boolean {
+  return freemiusConfigured() || stripeBillingConfigured();
 }
 
 export function emailConfigured(): boolean {

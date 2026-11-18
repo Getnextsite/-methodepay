@@ -2,7 +2,12 @@ import 'server-only';
 import Stripe from 'stripe';
 import type { PlanTier } from '@prisma/client';
 import { prisma } from './db';
-import { billingConfigured, env } from './env';
+import { env, freemiusConfigured, stripeBillingConfigured } from './env';
+import {
+  createFreemiusCheckout,
+  FREEMIUS_PORTAL_URL,
+  type BillingInterval as FreemiusInterval,
+} from './freemius';
 
 /**
  * Platform billing: what merchants pay us.
@@ -16,14 +21,38 @@ import { billingConfigured, env } from './env';
 let client: Stripe | null = null;
 
 export function platformStripe(): Stripe | null {
-  if (!billingConfigured()) return null;
+  if (!stripeBillingConfigured()) return null;
   if (!client) {
     client = new Stripe(env.platformStripeSecret, { apiVersion: '2024-12-18.acacia' });
   }
   return client;
 }
 
-export type BillingInterval = 'month' | 'year';
+export type BillingInterval = FreemiusInterval;
+export type BillingProvider = 'freemius' | 'stripe' | 'none';
+
+/**
+ * Which processor takes the money.
+ *
+ * Freemius wins when both are configured, because it is the one that also
+ * handles tax, invoicing and the customer portal — running both at once would
+ * mean two systems able to set the same account tier, and no way to say which
+ * was right when they disagreed.
+ */
+export function billingProvider(): BillingProvider {
+  if (freemiusConfigured()) return 'freemius';
+  if (stripeBillingConfigured()) return 'stripe';
+  return 'none';
+}
+
+async function ownerEmail(accountId: string): Promise<string> {
+  const membership = await prisma.membership.findFirst({
+    where: { accountId, role: 'OWNER' },
+    select: { user: { select: { email: true } } },
+    orderBy: { createdAt: 'asc' },
+  });
+  return membership?.user.email ?? '';
+}
 
 export function priceIdFor(tier: Exclude<PlanTier, 'FREE'>, interval: BillingInterval): string {
   return env.stripePrices[tier][interval];
@@ -77,6 +106,10 @@ export async function createPlanCheckout(
   tier: Exclude<PlanTier, 'FREE'>,
   interval: BillingInterval,
 ): Promise<{ url?: string; error?: string }> {
+  if (billingProvider() === 'freemius') {
+    return createFreemiusCheckout(tier, interval, await ownerEmail(accountId));
+  }
+
   const stripe = platformStripe();
   if (!stripe) {
     return { error: 'Billing is not configured on this deployment yet.' };
@@ -116,8 +149,13 @@ export async function createPlanCheckout(
   }
 }
 
-/** Stripe-hosted portal: card changes, invoices, cancellation. */
+/** The provider-hosted portal: card changes, invoices, cancellation. */
 export async function createBillingPortal(accountId: string): Promise<{ url?: string; error?: string }> {
+  // Freemius runs one portal for every product a customer has bought, signed
+  // into with the email they paid with. There is no per-account session to
+  // mint, so the link is the same for everybody.
+  if (billingProvider() === 'freemius') return { url: FREEMIUS_PORTAL_URL };
+
   const stripe = platformStripe();
   if (!stripe) return { error: 'Billing is not configured on this deployment yet.' };
 

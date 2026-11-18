@@ -153,6 +153,17 @@ model BillingSubscription {
   stripeCustomerId     String?            @unique
   stripeSubscriptionId String?            @unique
   stripePriceId        String?
+
+  // Freemius. Its webhooks carry no custom metadata, so the account is found
+  // through one of these ids, bound when the buyer returns from checkout.
+  freemiusUserId         String?
+  freemiusLicenseId      String? @unique
+  freemiusSubscriptionId String? @unique
+  freemiusPlanId         String?
+
+  /// Which provider last wrote this row: "stripe" or "freemius".
+  provider String?
+
   tier                 PlanTier           @default(FREE)
   status               SubscriptionStatus @default(INCOMPLETE)
   interval             String?

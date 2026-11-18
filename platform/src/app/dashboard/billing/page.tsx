@@ -4,7 +4,13 @@ import type { PlanTier } from '@prisma/client';
 import { requireTenant, assertRole, ForbiddenError } from '@/lib/tenancy';
 import { prisma } from '@/lib/db';
 import { entitlementsFor, PLANS, PLAN_PRICING } from '@/lib/entitlements';
-import { createBillingPortal, createPlanCheckout, type BillingInterval } from '@/lib/billing';
+import {
+  billingProvider,
+  createBillingPortal,
+  createPlanCheckout,
+  type BillingInterval,
+} from '@/lib/billing';
+import { bindFreemiusReturn } from '@/lib/freemius';
 import { billingConfigured } from '@/lib/env';
 import { formatMoney } from '@/lib/money';
 import { Banner, PageHeader, Section, StatTile } from '@/components/ui';
@@ -60,15 +66,36 @@ async function openPortalAction(_prev: ActionState, _formData: FormData): Promis
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: { upgraded?: string };
+  searchParams: {
+    upgraded?: string;
+    /** Appended by Freemius on the way back from its hosted checkout. */
+    user_id?: string;
+    license_id?: string;
+    email?: string;
+  };
 }) {
   const { account, role } = await requireTenant();
+  const provider = billingProvider();
+
+  // Freemius webhooks carry no account metadata, so this is where we learn
+  // which Freemius identity belongs to this account — in the merchant own
+  // session, and only when the email matches the owner we already have. It
+  // grants nothing on its own; the signed webhook still decides the plan.
+  if (provider === 'freemius' && role === 'OWNER' && (searchParams.license_id || searchParams.user_id)) {
+    await bindFreemiusReturn(account.id, {
+      userId: searchParams.user_id,
+      licenseId: searchParams.license_id,
+      email: searchParams.email,
+    });
+  }
+
   const ent = entitlementsFor(account);
   const subscription = await prisma.billingSubscription.findUnique({
     where: { accountId: account.id },
   });
 
   const isOwner = role === 'OWNER';
+  const returned = Boolean(searchParams.upgraded || searchParams.license_id);
 
   return (
     <>
@@ -77,20 +104,23 @@ export default async function BillingPage({
         description="Plans gate which payment rails, designs and automations your store can use. Nothing about your data is held back."
       />
 
-      {searchParams.upgraded ? (
+      {returned ? (
         <Banner tone="good">
-          Payment received. If the plan below still looks old, give the Stripe webhook a few seconds
-          and reload — the plan changes when the webhook lands, not when the redirect does.
+          Payment received. If the plan below still looks old, give the{' '}
+          {provider === 'freemius' ? 'Freemius' : 'Stripe'} webhook a few seconds and reload — the
+          plan changes when the webhook lands, not when the redirect does.
         </Banner>
       ) : null}
 
       {!billingConfigured() ? (
         <Banner tone="warn">
-          Platform billing is not wired up on this deployment. Set{' '}
-          <code className="text-xs">PLATFORM_STRIPE_SECRET_KEY</code>, the{' '}
-          <code className="text-xs">STRIPE_PRICE_*</code> ids and{' '}
-          <code className="text-xs">PLATFORM_STRIPE_WEBHOOK_SECRET</code> to take subscriptions. Plan
-          gating already works — you can set a tier directly in the database meanwhile.
+          Platform billing is not wired up on this deployment. Either set{' '}
+          <code className="text-xs">FREEMIUS_PRODUCT_ID</code>,{' '}
+          <code className="text-xs">FREEMIUS_SECRET_KEY</code> and the{' '}
+          <code className="text-xs">FREEMIUS_PLAN_*</code> ids, or the{' '}
+          <code className="text-xs">PLATFORM_STRIPE_SECRET_KEY</code> and{' '}
+          <code className="text-xs">STRIPE_PRICE_*</code> pair. Plan gating already works — you can
+          set a tier directly in the database meanwhile.
         </Banner>
       ) : null}
 
