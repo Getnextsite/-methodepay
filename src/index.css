@@ -185,6 +185,42 @@
     @apply text-base leading-relaxed text-zinc-400 sm:text-lg;
   }
 
+  /* A small status pill. Colour is passed by the caller, because what it
+     means — settles itself, needs you, costs extra — differs per use. */
+  .chip-sm {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-tight;
+  }
+
+  /* Long-form body copy: blog posts, guides and legal pages. */
+  .prose-mp {
+    @apply text-[15.5px] leading-[1.75] text-zinc-300;
+  }
+  .prose-mp p {
+    @apply mt-5;
+  }
+  .prose-mp h2 {
+    @apply mt-12 text-2xl font-extrabold tracking-tightest text-white;
+  }
+  .prose-mp h3 {
+    @apply mt-8 text-lg font-bold tracking-tight text-white;
+  }
+  .prose-mp ul,
+  .prose-mp ol {
+    @apply mt-5 space-y-2.5 pl-5;
+  }
+  .prose-mp ul {
+    @apply list-disc marker:text-violet-400;
+  }
+  .prose-mp ol {
+    @apply list-decimal marker:text-violet-400 marker:font-semibold;
+  }
+  .prose-mp a {
+    @apply font-medium text-violet-300 underline decoration-violet-400/40 underline-offset-4 hover:decoration-violet-300;
+  }
+  .prose-mp strong {
+    @apply font-semibold text-white;
+  }
+
   .gradient-text {
     @apply bg-gradient-to-r from-violet-400 via-violet-500 to-indigo-500 bg-clip-text text-transparent;
   }

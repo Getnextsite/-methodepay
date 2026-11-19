@@ -1,14 +1,10 @@
-import { Suspense, lazy, useEffect } from 'react'
+import { Suspense, createElement, lazy, useEffect, useMemo } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import Nav from './components/Nav.jsx'
 import Footer from './components/Footer.jsx'
-import Home from './pages/Home.jsx'
+import CookieConsent from './components/CookieConsent.jsx'
+import { routes } from './routes.js'
 
-const Features = lazy(() => import('./pages/Features.jsx'))
-const Pricing = lazy(() => import('./pages/Pricing.jsx'))
-const Docs = lazy(() => import('./pages/Docs.jsx'))
-const Contact = lazy(() => import('./pages/Contact.jsx'))
-const NotFound = lazy(() => import('./pages/NotFound.jsx'))
 
 /** Restores scroll on navigation and honours #hash targets. */
 function ScrollManager() {
@@ -44,7 +40,17 @@ function PageFallback() {
   )
 }
 
-export default function App() {
+export default function App({ pages: resolved }) {
+  // Code-split on the client. The server passes concrete components instead:
+  // a React.lazy wrapper suspends on its first render even when the import
+  // has already resolved, so renderToString would emit the Suspense fallback
+  // and every prerendered page would say "Loading…" under a real-looking
+  // shell — which is worse than not prerendering, because it looks fine.
+  const pages = useMemo(
+    () => resolved ?? routes.map((r) => ({ path: r.path, Component: lazy(r.load) })),
+    [resolved],
+  )
+
   return (
     <div className="flex min-h-screen flex-col">
       <a
@@ -60,17 +66,15 @@ export default function App() {
       <main id="main" className="flex-1">
         <Suspense fallback={<PageFallback />}>
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/features" element={<Features />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/docs" element={<Docs />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="*" element={<NotFound />} />
+            {pages.map((r) => (
+              <Route key={r.path} path={r.path} element={createElement(r.Component)} />
+            ))}
           </Routes>
         </Suspense>
       </main>
 
       <Footer />
+      <CookieConsent />
     </div>
   )
 }

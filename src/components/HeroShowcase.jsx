@@ -71,7 +71,7 @@ export default function HeroShowcase() {
       <div className="animate-stage-in motion-reduce:animate-none">
         <div className="relative lg:px-16">
           <Frame url="app.methodepay.com/dashboard" className="ring-gradient">
-            <img {...shots.dashboard} className="block h-auto w-full" fetchPriority="high" />
+            <img {...shots.dashboard} className="block h-auto w-full" fetchpriority="high" />
           </Frame>
 
           {/* desktop checkout, front left */}

@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
+import { collectSeo } from './seoCollector.js'
 
 const SITE = 'MethodePay'
-const ORIGIN = 'https://methodepay.com'
+const ORIGIN = 'https://www.methodepay.com'
 
 function upsertMeta(selector, attrs) {
   let el = document.head.querySelector(selector)
@@ -75,6 +76,13 @@ export const productSchema = (plans) => ({
  * optional JSON-LD block on mount.
  */
 export default function useSeo({ title, description, path = '/', jsonLd = null }) {
+  // During a server render there is no document and effects never fire, so the
+  // page hands its tags to the collector instead and the prerender writes them
+  // into the HTML. Not a hook call, so the rules of hooks are not in play.
+  if (import.meta.env.SSR) {
+    collectSeo({ title, description, path, jsonLd })
+  }
+
   useEffect(() => {
     const fullTitle = title.includes(SITE) ? title : `${title} — ${SITE}`
     document.title = fullTitle
