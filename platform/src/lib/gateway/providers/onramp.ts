@@ -4,8 +4,9 @@ import { prisma } from '../../db';
 import { env } from '../../env';
 import { fromCents } from '../../money';
 import { readConfig } from '../config';
-import type { InitiateInput, InitiateResult, MethodConfig } from '../types';
+import type { InitiateInput, InitiateResult } from '../types';
 import { ONRAMP_API_HOST, ONRAMP_CHECKOUT_HOST } from '../onramp-hosts';
+import { isOnrampProviderLive, onrampMinimumUsd } from './provider-status';
 
 /**
  * The on-ramp rails: OnRamPay, its promoted sub-providers, Alchemy Pay, and
@@ -108,8 +109,27 @@ export async function initiateOnRamPay(
   }
   amountUsd = Math.round(amountUsd * 100) / 100;
 
-  const minimum = ONRAMP_MINIMUMS[tag];
-  if (minimum !== undefined && amountUsd < minimum) {
+  // The upstream retires providers without warning — `upi` was a first-class
+  // button here long after its id stopped existing, so every buyer who chose
+  // it reached a dead end on the provider's own page.
+  if (!(await isOnrampProviderLive(tag))) {
+    return {
+      kind: 'error',
+      message: 'That payment option is not available right now. Please choose another.',
+    };
+  }
+
+  const minimum = await onrampMinimumUsd(tag, async (value, currency) => {
+    const conv = await onrampGet(
+      `https://${apiHost}/control/convert.php?value=${encodeURIComponent(
+        String(value),
+      )}&from=${encodeURIComponent(currency.toLowerCase())}`,
+    );
+    const usd = Number(conv?.value_coin);
+    return Number.isFinite(usd) && usd > 0 ? usd : null;
+  });
+
+  if (minimum !== null && amountUsd < minimum) {
     return {
       kind: 'error',
       message: `This payment method needs an order of at least $${minimum.toFixed(2)} USD.`,
@@ -216,35 +236,4 @@ export function finchpayWidgetUrl(amountCents: number, currency: string): string
     c: 'BTC',
   });
   return `https://widget.finchpay.io/payment_method?${params.toString()}`;
-}
-
-/** Per-on-ramp minimum order totals in USD, as published by OnRamPay. */
-export const ONRAMP_MINIMUMS: Record<string, number> = {
-  interac: 1,
-  upi: 1,
-  stripe: 2,
-  rampnetwork: 4,
-  robinhood: 5,
-  revolut: 8,
-  bitnovo: 10,
-  kryptonim: 10,
-  topper: 10,
-  unlimit: 10,
-  binance: 15,
-  transak: 15,
-  banxa: 20,
-  cryptix: 20,
-  guardarian: 20,
-  moonpay: 20,
-  sardine: 30,
-  simplex: 50,
-  utorg: 50,
-  klarna: 70,
-  paypal: 70,
-  transfi: 70,
-};
-
-export function onrampMinimum(config: MethodConfig, fallback: number): number {
-  const tag = String(config.onrampTag ?? '').trim();
-  return ONRAMP_MINIMUMS[tag] ?? fallback;
 }
