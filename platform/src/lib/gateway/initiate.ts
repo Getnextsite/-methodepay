@@ -68,8 +68,6 @@ export async function initiate(args: {
       return initiateOnRamPay(input, 'binance');
     case 'op_revolut':
       return initiateOnRamPay(input, 'revolut');
-    case 'op_upi':
-      return initiateOnRamPay(input, 'upi');
     case 'op_paypalus':
       return initiateOnRamPay(input, 'paypal');
     case 'whatsapp':

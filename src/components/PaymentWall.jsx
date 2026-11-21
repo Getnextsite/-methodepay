@@ -12,7 +12,6 @@ const rowA = [
 ]
 
 const rowB = [
-  { rail: 'op_upi', name: 'UPI', short: 'GPay · PhonePe' },
   { rail: 'op_cashapp', name: 'Cash App', short: 'US buyers' },
   { rail: 'alchemypay', name: 'Alchemy Pay', short: 'Embedded on-ramp' },
   { rail: 'onramppay', name: 'OnRamPay', short: '20+ on-ramps' },

@@ -161,7 +161,6 @@ export const METHOD_DEFINITIONS: MethodDefinition[] = [
       ['op_cashapp', 'Cash App', 'cashapp', 'Pay with Cash App via Transak.', '#00d632'],
       ['op_binance', 'Binance Pay', 'binance', 'Pay with your Binance balance or Binance Pay.', '#f0b90b'],
       ['op_revolut', 'Revolut', 'revolut', 'Pay instantly with your Revolut account.', '#0075eb'],
-      ['op_upi', 'UPI', 'upi', 'Pay by UPI — Google Pay, PhonePe, Paytm and more.', '#ff7a00'],
       ['op_paypalus', 'PayPal (USA)', 'paypal', 'Pay with your US PayPal account.', '#003087'],
     ] as const
   ).map<MethodDefinition>(([key, label, tag, desc, tone]) => ({

@@ -47,7 +47,6 @@ const railLinks = [
   { to: '/payments/bank-transfer', label: 'Bank transfer' },
   { to: '/payments/western-union', label: 'Western Union' },
   { to: '/payments/card-to-bitcoin', label: 'Card to Bitcoin' },
-  { to: '/payments/upi', label: 'UPI' },
   { to: '/payments/amazon-gift-card', label: 'Amazon gift card' },
 ]
 

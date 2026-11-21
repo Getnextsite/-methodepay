@@ -42,7 +42,6 @@ const ALL_METHODS = [
   'op_cashapp',
   'op_binance',
   'op_revolut',
-  'op_upi',
   'op_paypalus',
   'finchpay_btc',
   'crypto',

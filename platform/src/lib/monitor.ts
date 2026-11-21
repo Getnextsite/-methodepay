@@ -190,7 +190,6 @@ async function probeRail(key: string, config: Record<string, unknown>): Promise<
     case 'op_cashapp':
     case 'op_binance':
     case 'op_revolut':
-    case 'op_upi':
     case 'op_paypalus':
       return reachable(`https://${host(config.apiDomain, ONRAMP_API_HOST)}/`, ONRAMP_BRAND);
     case 'finchpay_btc':

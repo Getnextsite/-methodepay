@@ -9,7 +9,6 @@ export const paymentMethods = [
   { rail: 'crypto', name: 'Direct Crypto', short: 'USDT, BTC, ETH' },
   { rail: 'op_binance', name: 'Binance Pay', short: 'Pay from a Binance balance' },
   { rail: 'op_revolut', name: 'Revolut', short: 'Instant app transfer' },
-  { rail: 'op_upi', name: 'UPI', short: 'Google Pay, PhonePe, Paytm' },
   { rail: 'op_cashapp', name: 'Cash App', short: 'US buyers' },
   { rail: 'op_paypalus', name: 'PayPal (USA)', short: 'US PayPal accounts' },
   { rail: 'onramppay', name: 'Cards / Bank / Crypto', short: 'OnRamPay, 20+ on-ramps' },

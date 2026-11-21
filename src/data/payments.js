@@ -177,26 +177,6 @@ export const paymentGuides = [
     faqs: [{ q: 'Do I need a Revolut Business account?', a: 'No. You are not receiving into Revolut; you receive crypto at your own address.' }],
   },
   {
-    slug: 'upi',
-    key: 'op_upi',
-    name: 'UPI',
-    group: 'onramp',
-    settlement: 'automatic',
-    h1: 'Accept UPI payments from India',
-    description:
-      'Take UPI payments — Google Pay, PhonePe, Paytm and the rest — from Indian buyers, settling to a crypto address you control.',
-    bestFor: 'Selling to India, where UPI is how ordinary people pay for everything.',
-    needs: ['A payout wallet, or the shared on-ramp wallet'],
-    minimum: '$1',
-    steps: [
-      { title: 'Enable UPI', body: 'Turn it on under Payment methods.' },
-      { title: 'The buyer pays from any UPI app', body: 'They use whichever app they already have.' },
-    ],
-    pros: ['By far the most normal way to pay in India', 'No card, no bank form', 'Instant'],
-    cons: ['India only', 'Identity checks may apply above small amounts'],
-    faqs: [{ q: 'Do I need an Indian entity?', a: 'No. That is the point of routing it through an on-ramp.' }],
-  },
-  {
     slug: 'paypal-usa',
     key: 'op_paypalus',
     name: 'PayPal (USA)',

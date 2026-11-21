@@ -203,7 +203,10 @@ function eq<T>(name: string, actual: T, expected: T) {
 {
   const keys = METHOD_DEFINITIONS.map((d) => d.key);
   check('registry has no duplicate keys', new Set(keys).size === keys.length);
-  check('registry covers 18 rails', keys.length === 18, `got ${keys.length}`);
+  check('registry covers 17 rails', keys.length === 17, `got ${keys.length}`);
+  // UPI was retired: the upstream dropped the provider id, so the button could
+  // only ever dead-end. Guard against it being pasted back in.
+  check('no retired upi rail', !keys.includes('op_upi'), 'op_upi is back in the registry');
 
   for (const def of METHOD_DEFINITIONS) {
     check(`${def.key} has a label`, def.defaultLabel.length > 0);
