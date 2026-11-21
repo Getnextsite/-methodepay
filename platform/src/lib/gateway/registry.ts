@@ -1,4 +1,5 @@
 import type { ConfigField, MethodConfig, MethodDefinition } from './types';
+import { ONRAMP_API_HOST, ONRAMP_BRAND, ONRAMP_CHECKOUT_HOST } from './onramp-hosts';
 
 /**
  * Every payment rail the platform knows about.
@@ -135,25 +136,25 @@ export const METHOD_DEFINITIONS: MethodDefinition[] = [
         name: 'domain',
         label: 'Checkout domain',
         type: 'text',
-        defaultValue: 'checkout.onramp-pay.com',
+        defaultValue: ONRAMP_CHECKOUT_HOST,
       },
       {
         name: 'apiDomain',
         label: 'API domain',
         type: 'text',
-        defaultValue: 'api.onramp-pay.com',
+        defaultValue: ONRAMP_API_HOST,
       },
       {
         name: 'providers',
         label: 'Enabled on-ramps',
         type: 'text',
         placeholder: 'moonpay, banxa, transak',
-        help: 'Comma-separated. Leave blank to let OnRamPay choose.',
+        help: `Comma-separated. Leave blank to let ${ONRAMP_BRAND} choose.`,
       },
     ],
     isReady: (c) => has(c, 'wallet'),
   },
-  // The plugin promoted four OnRamPay sub-providers to first-class buttons
+  // The plugin promoted five on-ramp sub-providers to first-class buttons
   // because "Cards / Bank / Crypto" tested badly against a Binance logo.
   ...(
     [
@@ -172,15 +173,15 @@ export const METHOD_DEFINITIONS: MethodDefinition[] = [
     tone,
     minUsd: 1,
     settlement: 'automatic',
-    setupHint: `Routes through OnRamPay locked to ${label}. Falls back to the shared OnRamPay wallet if you leave the wallet blank.`,
+    setupHint: `Routes through ${ONRAMP_BRAND} locked to ${label}. Falls back to the shared on-ramp wallet if you leave the wallet blank.`,
     fields: [
       labelField,
-      { name: 'wallet', label: 'Payout wallet address', type: 'text', help: 'Blank uses the shared OnRamPay wallet.' },
+      { name: 'wallet', label: 'Payout wallet address', type: 'text', help: 'Blank uses the shared on-ramp wallet.' },
       { name: 'description', label: 'Description', type: 'textarea' },
       { name: 'showQr', label: 'Show a QR code', type: 'checkbox' },
-      { name: 'onrampTag', label: 'OnRamPay provider tag', type: 'text', defaultValue: tag },
+      { name: 'onrampTag', label: 'On-ramp provider tag', type: 'text', defaultValue: tag },
     ],
-    // Readiness is resolved against the shared OnRamPay wallet too; see
+    // Readiness is resolved against the shared on-ramp wallet too; see
     // resolveMethods(), which is the only caller that can see both configs.
     isReady: () => true,
   })),

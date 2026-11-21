@@ -113,18 +113,18 @@ export const paymentGuides = [
   {
     slug: 'onrampay',
     key: 'onramppay',
-    name: 'OnRamPay',
+    name: 'MethodePay On-Ramp',
     group: 'onramp',
     settlement: 'automatic',
     h1: 'One button, twenty-plus ways to pay',
     description:
-      'OnRamPay aggregates more than twenty on-ramps behind a single checkout button. Buyers pay by card, bank or local method; you receive USDC at your own wallet.',
+      'Our own on-ramp aggregates more than twenty providers behind a single checkout button. Buyers pay by card, bank or local method; you receive USDC at your own wallet.',
     bestFor: 'Merchants who want the widest coverage without integrating each provider.',
     needs: ['A USDC payout wallet, normally on Polygon'],
     minimum: '$30',
     steps: [
       { title: 'Add a payout wallet', body: 'Paste a USDC address you control. Use a self-custodial wallet, not an exchange deposit address.' },
-      { title: 'Pick your on-ramps', body: 'Leave it blank to let OnRamPay choose, or name the providers you want.' },
+      { title: 'Pick your on-ramps', body: 'Leave it blank to let the router choose, or name the providers you want.' },
       { title: 'The buyer is routed', body: 'They are sent to the on-ramp that works for their country and method.' },
       { title: 'You receive USDC', body: 'Settlement lands at your address.' },
     ],
@@ -144,11 +144,11 @@ export const paymentGuides = [
     description:
       'Promote Binance Pay to its own checkout button. Buyers pay from the balance they already hold; you receive crypto at your own address.',
     bestFor: 'Audiences who already live inside an exchange app.',
-    needs: ['A payout wallet, or the shared OnRamPay wallet'],
+    needs: ['A payout wallet, or the shared on-ramp wallet'],
     minimum: '$1',
     steps: [
-      { title: 'Switch it on', body: 'Enable Binance Pay under Payment methods. It routes through OnRamPay locked to Binance.' },
-      { title: 'Set a wallet', body: 'Give it its own payout address, or leave it blank to use your shared OnRamPay wallet.' },
+      { title: 'Switch it on', body: 'Enable Binance Pay under Payment methods. It routes through our on-ramp locked to Binance.' },
+      { title: 'Set a wallet', body: 'Give it its own payout address, or leave it blank to use your shared on-ramp wallet.' },
       { title: 'The buyer pays', body: 'They complete the payment in a flow they already recognise.' },
     ],
     pros: ['Enormous recognition in crypto-first markets', 'No card needed', 'Fast'],
@@ -164,9 +164,9 @@ export const paymentGuides = [
     group: 'onramp',
     settlement: 'automatic',
     h1: 'Take payment from a Revolut account',
-    description: 'Offer Revolut as its own checkout button, routed through OnRamPay and settling to your wallet.',
+    description: 'Offer Revolut as its own checkout button, routed through our on-ramp and settling to your wallet.',
     bestFor: 'European buyers who bank with Revolut.',
-    needs: ['A payout wallet, or the shared OnRamPay wallet'],
+    needs: ['A payout wallet, or the shared on-ramp wallet'],
     minimum: '$1',
     steps: [
       { title: 'Enable Revolut', body: 'Turn it on under Payment methods.' },
@@ -186,7 +186,7 @@ export const paymentGuides = [
     description:
       'Take UPI payments — Google Pay, PhonePe, Paytm and the rest — from Indian buyers, settling to a crypto address you control.',
     bestFor: 'Selling to India, where UPI is how ordinary people pay for everything.',
-    needs: ['A payout wallet, or the shared OnRamPay wallet'],
+    needs: ['A payout wallet, or the shared on-ramp wallet'],
     minimum: '$1',
     steps: [
       { title: 'Enable UPI', body: 'Turn it on under Payment methods.' },
@@ -206,7 +206,7 @@ export const paymentGuides = [
     description:
       'Accept payments from US PayPal accounts through an on-ramp, settling to your own wallet — useful when PayPal will not give you a merchant account.',
     bestFor: 'US buyers, when a PayPal business account is not an option for you.',
-    needs: ['A payout wallet, or the shared OnRamPay wallet'],
+    needs: ['A payout wallet, or the shared on-ramp wallet'],
     minimum: '$1',
     steps: [
       { title: 'Enable it', body: 'Turn on PayPal (USA) under Payment methods.' },
@@ -225,7 +225,7 @@ export const paymentGuides = [
     h1: 'Accept Cash App payments on your website',
     description: 'Take Cash App payments through Transak, settling to a crypto address you control.',
     bestFor: 'US buyers who pay for everything with Cash App.',
-    needs: ['A payout wallet, or the shared OnRamPay wallet'],
+    needs: ['A payout wallet, or the shared on-ramp wallet'],
     minimum: '$1',
     steps: [
       { title: 'Enable Cash App', body: 'Turn it on under Payment methods.' },

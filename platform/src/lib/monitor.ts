@@ -6,6 +6,7 @@ import { configIsReady, readConfig } from './gateway/config';
 import { methodDefinition } from './gateway/registry';
 import { chainOf } from './chain/networks';
 import { parseChainVerify } from './chain/settings';
+import { ONRAMP_API_HOST, ONRAMP_BRAND } from './gateway/onramp-hosts';
 import { notifyMerchantAlert, prettyMethod } from './notifier';
 import {
   alertTransitions,
@@ -191,7 +192,7 @@ async function probeRail(key: string, config: Record<string, unknown>): Promise<
     case 'op_revolut':
     case 'op_upi':
     case 'op_paypalus':
-      return reachable(`https://${host(config.apiDomain, 'api.onramp-pay.com')}/`, 'OnRamPay');
+      return reachable(`https://${host(config.apiDomain, ONRAMP_API_HOST)}/`, ONRAMP_BRAND);
     case 'finchpay_btc':
       return reachable('https://widget.finchpay.io/', 'FinchPay');
     case 'crypto':

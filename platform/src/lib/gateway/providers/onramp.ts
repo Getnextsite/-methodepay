@@ -5,6 +5,7 @@ import { env } from '../../env';
 import { fromCents } from '../../money';
 import { readConfig } from '../config';
 import type { InitiateInput, InitiateResult, MethodConfig } from '../types';
+import { ONRAMP_API_HOST, ONRAMP_CHECKOUT_HOST } from '../onramp-hosts';
 
 /**
  * The on-ramp rails: OnRamPay, its promoted sub-providers, Alchemy Pay, and
@@ -77,8 +78,8 @@ export async function initiateOnRamPay(
     return { kind: 'error', message: 'This payment method is not configured for this store.' };
   }
 
-  const apiHost = cleanHost(input.config.apiDomain ?? shared.apiDomain, 'api.onramp-pay.com');
-  const domain = cleanHost(input.config.domain ?? shared.domain, 'checkout.onramp-pay.com');
+  const apiHost = cleanHost(input.config.apiDomain ?? shared.apiDomain, ONRAMP_API_HOST);
+  const domain = cleanHost(input.config.domain ?? shared.domain, ONRAMP_CHECKOUT_HOST);
 
   // Which on-ramp: the locked one, else the first the merchant enabled.
   const enabled = String(input.config.providers ?? shared.providers ?? '')

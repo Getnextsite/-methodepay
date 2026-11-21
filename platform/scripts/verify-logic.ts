@@ -39,6 +39,7 @@ import {
   methodDefinition,
   secretFieldNames,
 } from '../src/lib/gateway/registry';
+import { ONRAMP_API_HOST, ONRAMP_CHECKOUT_HOST } from '../src/lib/gateway/onramp-hosts';
 
 let passed = 0;
 const failures: string[] = [];
@@ -239,7 +240,15 @@ function eq<T>(name: string, actual: T, expected: T) {
     !methodDefinition('whatsapp')!.isReady({ number: '   ' }),
   );
 
-  eq('onramppay carries a default domain', defaultConfig('onramppay').domain, 'checkout.onramp-pay.com');
+  // The rail must point at our own white-label, never back at the provider
+  // the platform was ported away from.
+  eq('onramppay defaults to our checkout host', defaultConfig('onramppay').domain, ONRAMP_CHECKOUT_HOST);
+  eq('onramppay defaults to our api host', defaultConfig('onramppay').apiDomain, ONRAMP_API_HOST);
+  check(
+    'no rail default points at onramp-pay.com',
+    !JSON.stringify(METHOD_DEFINITIONS).includes('onramp-pay.com'),
+    'a default still references the old provider',
+  );
   eq('promoted binance carries its tag', defaultConfig('op_binance').onrampTag, 'binance');
   eq('unknown rail has no defaults', Object.keys(defaultConfig('nope')).length, 0);
   eq('onramppay minimum is 30 USD', methodDefinition('onramppay')!.minUsd, 30);
