@@ -11,21 +11,27 @@
  * `apiDomain` on the rail, which is what makes it possible to point a single
  * store at a staging deployment without touching anybody else.
  *
- * The workers.dev hostname is deliberate, not a placeholder. The branded
- * `api.` and `checkout.` records cannot resolve to the Worker while
- * methodepay.com answers from Vercel nameservers: a CNAME to workers.dev is
- * refused by Cloudflare with a 403, because the edge routes on the hostname it
- * was given. Until that is resolved, the Worker's own hostname is the one that
- * actually serves.
+ * The two hosts differ on purpose, and the asymmetry is the point.
+ *
+ * methodepay.com answers from Vercel nameservers, and a Cloudflare Worker
+ * custom domain needs the zone on Cloudflare — a CNAME to workers.dev is
+ * refused at the edge with a 403, because Cloudflare routes on the hostname it
+ * is given. So the buyer-facing host is served by Vercel (see
+ * `onramp-proxy/`), which rewrites every path to the Worker and sets the
+ * upstream Host to match.
+ *
+ * The API host skips that hop. No buyer ever reads it, so a proxy in front of
+ * a server-to-server call would buy nothing and add a component that can fail
+ * mid-payment.
  */
 
 /** Server-to-server only — convert and wallet registration. No buyer sees it. */
 export const ONRAMP_API_HOST =
   process.env.ONRAMP_API_HOST || 'methodepay-api.hero36228.workers.dev'
 
-/** The buyer is redirected here, so this one is worth branding when it can be. */
+/** The buyer is redirected here mid-payment, so it carries the brand. */
 export const ONRAMP_CHECKOUT_HOST =
-  process.env.ONRAMP_CHECKOUT_HOST || 'methodepay-api.hero36228.workers.dev'
+  process.env.ONRAMP_CHECKOUT_HOST || 'checkout.methodepay.com'
 
 /** What the rail is called in merchant-facing copy. */
 export const ONRAMP_BRAND = 'MethodePay On-Ramp'
